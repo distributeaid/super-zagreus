@@ -10,7 +10,7 @@
 
 ## 1. Scope
 
-This spec covers the **frontend** built in `super-zagreus` and the **small additions** needed in the existing `zagreus-be` backend to support the MVP. It assumes the reconciled product model in the PRD (hub org → single project/region → confirmable assessment of needs, locked default units, structured missing-item requests, login-only frontend).
+This spec covers both the **frontend** and the **backend** for the MVP, built together in the **`super-zagreus` monorepo** (see §2.1 for the repository decision). It assumes the reconciled product model in the PRD (hub org → single project/region → confirmable assessment of needs, locked default units, structured missing-item requests, login-only frontend). The backend carries over the existing `zagreus-be` .NET solution, consolidated into the monorepo.
 
 ## 2. Architecture
 
@@ -18,19 +18,42 @@ Two tiers, communicating over HTTPS with JWT bearer auth. The frontend holds **n
 
 ```mermaid
 flowchart LR
-  U[Hub user browser] -->|HTTPS| FE[Next.js frontend\nsuper-zagreus]
-  FE -->|REST + JWT Bearer| API[.NET 8 / ASP.NET Core API\nzagreus-be]
+  U[Hub user browser] -->|HTTPS| FE[Next.js frontend\napps/web]
+  FE -->|REST + JWT Bearer| API[.NET 8 / ASP.NET Core API\napps/api]
   API --> DB[(PostgreSQL\nEF Core)]
   subgraph Ops
-    S[Admin/ops scripts] --> API
+    S[Admin/ops scripts\napps/api] --> API
+  end
+  subgraph super-zagreus monorepo
+    FE
+    API
+    S
   end
 ```
 
-- **Frontend** (`super-zagreus`): Next.js 16 App Router. Renders partner UI, holds session, calls the API. Server-side route handlers/server components proxy API calls where it helps keep the JWT off the client.
-- **Backend** (`zagreus-be`): existing .NET 8 / ASP.NET Core / PostgreSQL / EF Core API. Source of truth for all data, auth, and the seeded catalog.
-- **Ops scripts** (`zagreus-be`): provisioning and credential-reset utilities that call the API (or run against the DB) with a DA admin token.
+- **Frontend** (`apps/web`): Next.js 16 App Router. Renders partner UI, holds session, calls the API. Server-side route handlers/server components proxy API calls where it helps keep the JWT off the client.
+- **Backend** (`apps/api`): .NET 8 / ASP.NET Core / PostgreSQL / EF Core API (the `zagreus-be` solution, consolidated in). Source of truth for all data, auth, and the seeded catalog.
+- **Ops scripts** (`apps/api`): provisioning and credential-reset utilities that call the API (or run against the DB) with a DA admin token.
 
-> Note on repositories: the frontend is developed in **`super-zagreus`** (per decision), targeting the `zagreus-be` API. `zagreus-fe` is the earlier bare scaffold and is superseded for MVP work unless the team decides otherwise.
+### 2.1 Repository decision — monorepo
+
+**Decision:** all Zagreus code — frontend and backend — lives in the single **`super-zagreus`** repository, replacing the separate `zagreus-fe` and `zagreus-be` prototypes.
+
+**Rationale:** both prototype repos were fresh scaffolds (`zagreus-fe` 2 commits, `zagreus-be` 1 commit), so there was negligible history, CI, or deployment investment to preserve — consolidating now is cheap. A monorepo gives a small volunteer team building FE and BE in lockstep: atomic cross-cutting changes (an API change and its consumer in one PR, so the two never drift), one home for specs/issues/docs, and simpler onboarding (one clone).
+
+**Cost accepted:** this is a polyglot repo (.NET + Node/Next.js), which both assume owns the repo root. Managed via a clear directory split and path-scoped CI (build only what changed). Deployment targets stay independent (web → Vercel, api → server/Docker+Postgres) — separate deployment does not require separate repos.
+
+**Revisit if:** the backend API needs to be consumed by other DA applications beyond Zagreus, at which point a standalone API repo may earn its keep.
+
+Layout:
+
+```
+super-zagreus/
+  apps/
+    web/     # Next.js 16 frontend (Yarn 4)
+    api/     # .NET 8 / ASP.NET Core solution (from zagreus-be)
+  docs/superpowers/specs/
+```
 
 ## 3. Frontend stack & conventions
 
@@ -39,7 +62,7 @@ flowchart LR
 - **Validation:** Zod for form and API-response schemas.
 - **Testing:** Vitest + Testing Library (jsdom), following DA's query-priority conventions; avoid `beforeEach` state leakage (setup-function pattern).
 - **Tooling:** ESLint (`eslint-config-next`) + Prettier. **License: AGPL-3.0** (matching DA repos).
-- **Project structure** (DA convention): `src/app` (routes), `src/app/api` (server-side handlers/proxy), `src/components`, `src/data` (API client + types; nothing data-related inline in components).
+- **Project structure** (DA convention, within `apps/web`): `src/app` (routes), `src/app/api` (server-side handlers/proxy), `src/components`, `src/data` (API client + types; nothing data-related inline in components).
 
 ## 4. Data model (as consumed from the API)
 
@@ -89,7 +112,7 @@ Shared modules: `src/data/apiClient` (fetch wrapper injecting the token, handlin
 - **Route protection:** Next.js middleware guards authed routes by presence/validity of the session cookie.
 - Org-scoping is enforced by the backend (org users only see their own org); the frontend does not implement its own authorization.
 
-## 8. Backend additions required (`zagreus-be`)
+## 8. Backend additions required (`apps/api`)
 
 Small, additive changes — to confirm against the actual entities during planning:
 
@@ -98,7 +121,7 @@ Small, additive changes — to confirm against the actual entities during planni
 3. **Freshness on confirm** — verify `submit` sets/updates the timestamp used for staleness; expose it on the current-assessment response so the frontend can show "last confirmed." (Aligns with the existing `DA.NA.Staleness` module.)
 4. **CSV** stays **frontend-side** for MVP; `DA.NA.Analytics` remains a placeholder.
 
-## 9. Admin / ops scripts (`zagreus-be`)
+## 9. Admin / ops scripts (`apps/api`)
 
 Delivered with the MVP to keep DA's manual overhead low (see PRD §3):
 
@@ -134,7 +157,8 @@ Encode DA brand tokens in the Tailwind theme; components reference tokens only.
 
 ## 13. Deployment (to confirm — not an MVP blocker)
 
-- **Frontend:** Vercel (DA's website deploy target) or self-hosted pm2 (DA's other pattern). Env: API base URL, JWT cookie settings.
+- **Monorepo CI:** path-scoped pipelines — changes under `apps/web/**` build/test/deploy the frontend; changes under `apps/api/**` build/test/deploy the backend. Each app deploys independently despite sharing the repo.
+- **Frontend:** Vercel (DA's website deploy target, with the project root set to `apps/web`) or self-hosted pm2 (DA's other pattern). Env: API base URL, JWT cookie settings.
 - **Backend:** .NET + PostgreSQL on DA infrastructure (Docker/managed Postgres). The API requires a `JWT:Key` secret to start.
 - **Secrets:** API base URL and cookie config on the frontend; JWT signing key on the backend.
 

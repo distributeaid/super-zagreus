@@ -14,7 +14,7 @@ Zagreus is a web application that lets DistributeAid (DA) partner organizations 
 
 The MVP proves one tight loop: **a partner can record and confirm their aid needs, and see those needs reported back clearly.** Everything beyond that loop — impact modeling, fulfillment tracking, staff tooling — is deliberately deferred.
 
-This version reconciles the original product scope with two existing prototypes: a Next.js frontend (`zagreus-fe`) and a .NET 8 / ASP.NET Core / PostgreSQL backend (`zagreus-be`) that already implements a data model and API. Where the two diverged, the reconciled decisions are recorded in Section 10.
+This version reconciles the original product scope with two existing prototypes: a Next.js frontend (`zagreus-fe`) and a .NET 8 / ASP.NET Core / PostgreSQL backend (`zagreus-be`) that already implements a data model and API. Both are being **consolidated into the single `super-zagreus` monorepo** (frontend in `apps/web`, backend in `apps/api`); see the technical design spec for that decision. Where the two prototypes diverged from the original scope, the reconciled decisions are recorded in Section 10.
 
 ## 2. Goals & non-goals
 
@@ -41,7 +41,7 @@ This version reconciles the original product scope with two existing prototypes:
 
 - Partner accounts are **provisioned by DA** — there is no public sign-up.
 - The backend already supports multiple users per organization and DA/organization roles, but the **MVP frontend is login-only**: it does not expose in-app user management. DA provisions the hub's user(s).
-- To keep DA's manual overhead low, the MVP includes **admin/ops scripts** (in `zagreus-be`) to (a) provision a hub organization and its first admin user, and (b) reset/recreate a user's credentials. Self-service reset is future work.
+- To keep DA's manual overhead low, the MVP includes **admin/ops scripts** (in the API app, `apps/api`) to (a) provision a hub organization and its first admin user, and (b) reset/recreate a user's credentials. Self-service reset is future work.
 - Organization users only ever see data belonging to their own organization.
 - DA staff are not users of the MVP interface; a staff-facing view is future work.
 
