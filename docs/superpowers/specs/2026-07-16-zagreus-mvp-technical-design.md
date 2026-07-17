@@ -73,7 +73,7 @@ The backend owns these entities; the frontend consumes them. Shapes below are th
 - **User**: `id`, `email` (the verified Google/Microsoft identity — no password), `orgId`, `role`. DA-authorized; matched to the signed-in identity by email.
 - **Organisation** (hub): `id`, `name`.
 - **Project**: `id`, `orgId`, `name`, `region`. MVP uses one default project per org.
-- **Assessment**: `id`, `projectId`, `status` (draft/current), `submittedAt` (freshness). "Current assessment" is fetched per project.
+- **Assessment** (the needs list): `id`, `projectId`, `status` (draft/current), and **`lastConfirmedAt`** — the single, list-level freshness timestamp set on confirm. "Current assessment" is fetched per project. **Staleness is derived, list-level**: the list "needs updating" when `now − lastConfirmedAt > 90 days` (fixed, DA-tunable constant). There is deliberately **no per-item freshness** — confirm always resets the whole list, so one timestamp is authoritative (per-item timestamps would be added only if partial confirmation is introduced later).
 - **AssessmentItem** (a need): `id`, `assessmentId`, `itemTypeId`, `quantity`, `unitId`, `notes`, plus optional `locationNote` and `urgency` (see §8 additions).
 - **Category / ItemType** (catalog reference): categories with item types; each item type has a default unit. Read-only.
 - **Unit** (reference): fixed set — item, box, pallet, kg, lb, litre, gallon — each a stable GUID.
@@ -88,22 +88,23 @@ From the existing backend (confirmed via its README/Bruno collection):
 - `GET /api/units` (public) — units
 - `POST /api/organisations/{orgId}/projects` / list projects — project + region
 - `POST /api/projects/{projectId}/assessments` — create draft
-- `GET /api/projects/{projectId}/assessments/current` — current needs
+- `GET /api/projects/{projectId}/assessments/current` — current needs (includes `lastConfirmedAt` for the freshness/stale badge)
 - `POST /api/assessments/{assessmentId}/items` — add a need (`itemTypeId`, `quantity`, `unitId`, `notes`)
 - edit/remove item endpoints (to confirm)
-- `POST /api/assessments/{assessmentId}/submit` — "confirm current needs" (requires ≥1 item)
+- `POST /api/assessments/{assessmentId}/submit` — "confirm current needs" (requires ≥1 item; sets `lastConfirmedAt = now`)
 - **new:** missing-item request endpoint (see §8)
 
 ## 6. Screens & module boundaries
 
 Each screen is a route under `src/app`, composed from `src/components`, talking to a typed API client in `src/data`.
 
-1. **Login** (`/login`) — "Sign in with Google" / "Sign in with Microsoft" buttons → OAuth flow → establish session → redirect. No password or reset UI.
-2. **Current needs** (`/`, authed) — the project's current assessment as an editable list, grouped by category; shows "last confirmed" freshness. Actions: add, edit, remove, **Confirm current needs**.
-3. **Add/edit need** (modal or `/needs/new`, `/needs/[id]`) — catalog picker (browse by category + search), quantity in the item's **locked default unit** (unit shown, not chosen), optional location note, urgency, item notes. Built with React Hook Form + Zod (`useFieldArray` for the needs list).
-4. **Confirm needs** — action on the current-needs screen; calls submit; surfaces the requirement of ≥1 item; updates freshness.
-5. **Missing-item request** (`/needs/request` or modal) — structured free-text request form → new endpoint.
-6. **Reporting / summary** (`/summary`, authed) — current needs grouped by category with totals + last-confirmed date; **Export CSV** (client-side).
+1. **Login** (`/login`) — "Sign in with Google" / "Sign in with Microsoft" buttons → OAuth flow → establish session → redirect to the dashboard. No password or reset UI.
+2. **Dashboard / home** (`/`, authed) — the landing page after sign-in. Shows the hub's **project card** (name + region) with a **freshness status**: an "up to date" / "needs updating" badge derived from `lastConfirmedAt` vs the 90-day window, plus "last confirmed X days ago", and a primary **"Review & confirm needs"** CTA into the needs editor. Built to scale to a **list of project cards** later (org/project list is future work). The stale badge is the MVP "notification"; automated email/push nudges are deferred.
+3. **Current needs** (`/needs`, authed) — the project's current assessment as an editable list, grouped by category; shows "last confirmed" freshness. Actions: add, edit, remove, **Confirm current needs**.
+4. **Add/edit need** (modal or `/needs/new`, `/needs/[id]`) — catalog picker (browse by category + search), quantity in the item's **locked default unit** (unit shown, not chosen), optional location note, urgency, item notes. Built with React Hook Form + Zod (`useFieldArray` for the needs list).
+5. **Confirm needs** — action on the current-needs screen; calls submit; sets `lastConfirmedAt = now`, which resets the whole list's freshness (and clears the dashboard "needs updating" state). Surfaces the requirement of ≥1 item.
+6. **Missing-item request** (`/needs/request` or modal) — structured free-text request form → new endpoint.
+7. **Reporting / summary** (`/summary`, authed) — current needs grouped by category with totals + last-confirmed date; **Export CSV** (client-side).
 
 Shared modules: `src/data/apiClient` (fetch wrapper injecting the token, handling 401/expiry), `src/data/types` (Zod schemas + inferred types), `src/components/ui` (Radix + Tailwind primitives themed to DA tokens).
 
@@ -129,9 +130,9 @@ Small, additive changes — to confirm against the actual entities during planni
 
 1. **OAuth-based auth** — replace the prototype's username/password login with `POST /api/auth/session`: verify a Google/Microsoft ID token (issuer, audience, JWKS signature), match the verified email to an authorized `User`, and issue the app JWT with org/role claims. Drop password storage/fields; keep the JWT-issuing/validation and org/role model. Add a `User.email` lookup.
 2. **Missing-item request** — entity + endpoints (`POST` to create, list for DA). Structured (org/project, description, timestamp, status).
-2. **Optional need fields** — `locationNote` (free text) and `urgency` (lightweight) on `AssessmentItem`, if not already present. The PRD marks both optional.
-3. **Freshness on confirm** — verify `submit` sets/updates the timestamp used for staleness; expose it on the current-assessment response so the frontend can show "last confirmed." (Aligns with the existing `DA.NA.Staleness` module.)
-4. **CSV** stays **frontend-side** for MVP; `DA.NA.Analytics` remains a placeholder.
+3. **Optional need fields** — `locationNote` (free text) and `urgency` (lightweight) on `AssessmentItem`, if not already present. The PRD marks both optional.
+4. **List-level freshness** — ensure `submit` (confirm) sets `lastConfirmedAt = now` on the assessment, and expose `lastConfirmedAt` on the current-assessment response so the dashboard and needs screens can show freshness and derive the 90-day stale badge. The 90-day window is a shared, DA-tunable constant. (The `DA.NA.Staleness` module owns the eventual background notification jobs — out of MVP scope.)
+5. **CSV** stays **frontend-side** for MVP; `DA.NA.Analytics` remains a placeholder.
 
 ## 9. Admin / ops scripts (`apps/api`)
 

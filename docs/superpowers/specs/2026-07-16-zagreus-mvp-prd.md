@@ -64,7 +64,9 @@ This version reconciles the original product scope with two existing prototypes:
 - Reference to a catalog item (required)
 - Quantity (required), entered in the item's **locked default unit** for the MVP (the partner does not choose the unit)
 
-**Needs list** — the partner's current set of needs for their project. The partner edits it like a **living list**, then **confirms** it ("confirm my current needs"). Confirming snapshots the current state for history and **resets the freshness/staleness clock**. Between confirmations the partner can freely edit. This gives a living-list experience while retaining dated history that DA can trend over time.
+**Needs list** — the partner's current set of needs for their project. The partner edits it like a **living list**, then **confirms** it ("confirm my current needs"). Confirming snapshots the current state for history and **resets the list's freshness clock**. Between confirmations the partner can freely edit. This gives a living-list experience while retaining dated history that DA can trend over time.
+
+**Freshness / staleness** — freshness is tracked **once per needs list** (a single "last confirmed" date), not per item. A list "needs updating" when it hasn't been confirmed in **90 days** (a fixed, DA-tunable window). Confirming the list resets it to fresh. There is no per-item freshness: because a partner always reviews and confirms the whole list, one list-level date is authoritative (per-item tracking is deferred to a possible future "partial confirmation" feature).
 
 **Missing-item request** — when a partner needs an item not in the catalog, they submit a **dedicated, structured request** captured separately for DA to review and, if appropriate, add to the catalog. It does not create a need until DA acts on it.
 
@@ -94,12 +96,19 @@ This version reconciles the original product scope with two existing prototypes:
 - Export the current needs to **CSV** (generated client-side for the MVP).
 - (PDF export is a candidate for a later version unless prioritized into MVP.)
 
-### 5.5 Design & UX
+### 5.5 Dashboard / home
+- After signing in, the partner lands on a **dashboard** showing their hub's project (name + region).
+- The dashboard shows the needs list's **freshness status**: an "up to date" or "needs updating" indicator based on the 90-day window, plus when it was last confirmed.
+- A clear call-to-action takes the partner into the needs list to review, edit, and confirm it.
+- For the MVP the dashboard's stale indicator *is* the notification; automated email/push nudges are future work. The dashboard is designed to grow into an org/project list later.
+
+### 5.6 Design & UX
 - The UI must follow the **DA Design Guidelines**: Primary DA Blue `#051E5D`; secondary palette `#DFCDE8`, `#98BEC6`, `#5AC597`; **Roboto** for body/UI type with **Permanent Marker** as a sparing accent; the 8/16/32/64px spacing scale; and the 12/8/4-column responsive grid. Details in the technical spec.
 
 ## 6. Key user stories
 
-- As a hub user, I can log in with the account DA gave me and see my organization's current needs.
+- As a hub user, I can log in with the account DA gave me and land on a dashboard for my project.
+- As a hub user, I can see at a glance whether my needs list is up to date or needs updating, and jump straight in to review it.
 - As a hub user, I can add a need by finding the right item in DA's catalog and entering how many I need.
 - As a hub user, I can note where something is needed and how urgently, without being forced to.
 - As a hub user, when the item I need isn't listed, I can request it so DA can add it.
@@ -122,7 +131,9 @@ This version reconciles the original product scope with two existing prototypes:
 - **DA staff-facing view** — an in-app admin interface across all partners.
 - **In-app user management** — a hub admin invites/manages its own users (backend already supports this).
 - **Additional identity providers / org SSO** — providers beyond Google/Microsoft, or organization-level SSO federation.
-- **Multiple projects per hub in the UI** — expose the backend's multi-project support.
+- **Automated staleness notifications** — email/push nudges when a needs list goes stale (the `DA.NA.Staleness` background jobs); MVP only shows the status on the dashboard.
+- **Partial confirmation / per-item freshness** — let a partner affirm individual items without re-confirming the whole list, which would introduce per-item freshness dates.
+- **Multiple projects per hub in the UI** — expose the backend's multi-project support (the dashboard grows into an org/project list).
 - **Unit flexibility** — unit override per item and, importantly, letting partners work in their **own local units** rather than DA's normalized defaults (adds UX and data-normalization complexity).
 - **Frontline-group modeling** — attribute a hub's needs to the specific frontline groups it serves.
 - **Structured urgency/timeframes** — replace the lightweight urgency field with structured needed-by dates and levels.
