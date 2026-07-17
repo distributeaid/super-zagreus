@@ -2,15 +2,31 @@
 
 # dependencies
 /node_modules
+**/node_modules
 /.pnp
 .pnp.js
 
+# yarn 4
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/patches
+!.yarn/sdks
+!.yarn/versions
+
 # testing
 /coverage
+**/coverage
 
 # next.js
 /.next/
+apps/web/.next/
+apps/web/out/
 /out/
+
+# dotnet
+apps/api/**/bin/
+apps/api/**/obj/
 
 # production
 /build
