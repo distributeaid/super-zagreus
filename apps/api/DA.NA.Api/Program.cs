@@ -11,6 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddScoped<DA.NA.Api.Auth.JwtTokenFactory>();
+builder.Services.AddSingleton<DA.NA.Api.Auth.IIdTokenVerifier, DA.NA.Api.Auth.OidcIdTokenVerifier>();
 
 var jwtKey = builder.Configuration["Jwt:Key"];
 if (string.IsNullOrWhiteSpace(jwtKey) || jwtKey.Length < 32)
