@@ -136,8 +136,6 @@ This version reconciles the original product scope with two existing prototypes:
 - **Multiple projects per hub in the UI** — expose the backend's multi-project support (the dashboard grows into an org/project list).
 - **Unit flexibility** — unit override per item and, importantly, letting partners work in their **own local units** rather than DA's normalized defaults (adds UX and data-normalization complexity).
 - **Frontline-group modeling** — attribute a hub's needs to the specific frontline groups it serves.
-- **Urgency & timeframes** — add needed-by dates / urgency to needs (not modeled in the MVP).
-- **Per-need notes & location** — optional free-text notes and a location note per need (removed from the MVP for simplicity).
 - **PDF export** and richer report formats.
 - **Sourcing & predictive modeling integration** — feed needs data into DA's sourcing and forecasting.
 

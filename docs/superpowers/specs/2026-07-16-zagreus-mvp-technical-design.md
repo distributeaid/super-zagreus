@@ -74,7 +74,7 @@ The backend owns these entities; the frontend consumes them. Shapes below are th
 - **Organisation** (hub): `id`, `name`.
 - **Project**: `id`, `orgId`, `name`, `region`. MVP uses one default project per org.
 - **Assessment** (the needs list): `id`, `projectId`, `status` (draft/current), and **`lastConfirmedAt`** — the single, list-level freshness timestamp set on confirm. "Current assessment" is fetched per project. **Staleness is derived, list-level**: the list "needs updating" when `now − lastConfirmedAt > 90 days` (fixed, DA-tunable constant). There is deliberately **no per-item freshness** — confirm always resets the whole list, so one timestamp is authoritative (per-item timestamps would be added only if partial confirmation is introduced later).
-- **AssessmentItem** (a need): `id`, `assessmentId`, `itemTypeId`, `quantity`, `unitId`. No per-need location, urgency, or notes fields in the MVP (the backend's existing `notes` field, if present, is left unused).
+- **AssessmentItem** (a need): `id`, `assessmentId`, `itemTypeId`, `quantity`, `unitId`.
 - **Category / ItemType** (catalog reference): categories with item types; each item type has a default unit. Read-only.
 - **Unit** (reference): fixed set — item, box, pallet, kg, lb, litre, gallon — each a stable GUID.
 - **MissingItemRequest** (new): `id`, `orgId`/`projectId`, free-text description, `createdAt`, status. See §8.
