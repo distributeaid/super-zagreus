@@ -60,6 +60,7 @@ super-zagreus/
 - **Framework:** Next.js 16 (App Router), React 19, TypeScript, Yarn 4 (matching the DA house stack).
 - **UI:** Radix UI + Tailwind CSS, following DA website conventions — **named color tokens, no raw hex in components**.
 - **Validation:** Zod for form and API-response schemas.
+- **Forms:** **React Hook Form + Zod** (via `@hookform/resolvers`). Chosen over Formik (effectively unmaintained) and TanStack Form after a DX-focused comparison: RHF's mature ecosystem, documented composition patterns (`useFormContext` so field components read state without prop-drilling; reusable typed inputs), `useFieldArray` fit for dynamic line-item forms like the needs list, and deep Testing-Library prior art best suit a rotating volunteer team maintaining forms that will grow in complexity. Centralized Zod schemas stay independently unit-testable. (TanStack Form was the runner-up — stronger end-to-end type inference — but its thinner ecosystem raised the maintenance cost for this team. Note: our authoritative validation is the .NET API; client-side Zod is for UX, so server-action-native options like Conform were not a fit.)
 - **Auth:** Auth.js (NextAuth) configured with **Google** and **Microsoft Entra** OAuth providers; see §7. (Confirm Auth.js compatibility with Next.js 16 / React 19 during planning; fall back to a direct OIDC client if needed.)
 - **Testing:** Vitest + Testing Library (jsdom), following DA's query-priority conventions; avoid `beforeEach` state leakage (setup-function pattern).
 - **Tooling:** ESLint (`eslint-config-next`) + Prettier. **License: AGPL-3.0** (matching DA repos).
@@ -99,7 +100,7 @@ Each screen is a route under `src/app`, composed from `src/components`, talking 
 
 1. **Login** (`/login`) — "Sign in with Google" / "Sign in with Microsoft" buttons → OAuth flow → establish session → redirect. No password or reset UI.
 2. **Current needs** (`/`, authed) — the project's current assessment as an editable list, grouped by category; shows "last confirmed" freshness. Actions: add, edit, remove, **Confirm current needs**.
-3. **Add/edit need** (modal or `/needs/new`, `/needs/[id]`) — catalog picker (browse by category + search), quantity in the item's **locked default unit** (unit shown, not chosen), optional location note, urgency, item notes. Zod-validated.
+3. **Add/edit need** (modal or `/needs/new`, `/needs/[id]`) — catalog picker (browse by category + search), quantity in the item's **locked default unit** (unit shown, not chosen), optional location note, urgency, item notes. Built with React Hook Form + Zod (`useFieldArray` for the needs list).
 4. **Confirm needs** — action on the current-needs screen; calls submit; surfaces the requirement of ≥1 item; updates freshness.
 5. **Missing-item request** (`/needs/request` or modal) — structured free-text request form → new endpoint.
 6. **Reporting / summary** (`/summary`, authed) — current needs grouped by category with totals + last-confirmed date; **Export CSV** (client-side).
