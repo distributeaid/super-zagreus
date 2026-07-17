@@ -60,6 +60,7 @@ super-zagreus/
 - **Framework:** Next.js 16 (App Router), React 19, TypeScript, Yarn 4 (matching the DA house stack).
 - **UI:** Radix UI + Tailwind CSS, following DA website conventions — **named color tokens, no raw hex in components**.
 - **Validation:** Zod for form and API-response schemas.
+- **Auth:** Auth.js (NextAuth) configured with **Google** and **Microsoft Entra** OAuth providers; see §7. (Confirm Auth.js compatibility with Next.js 16 / React 19 during planning; fall back to a direct OIDC client if needed.)
 - **Testing:** Vitest + Testing Library (jsdom), following DA's query-priority conventions; avoid `beforeEach` state leakage (setup-function pattern).
 - **Tooling:** ESLint (`eslint-config-next`) + Prettier. **License: AGPL-3.0** (matching DA repos).
 - **Project structure** (DA convention, within `apps/web`): `src/app` (routes), `src/app/api` (server-side handlers/proxy), `src/components`, `src/data` (API client + types; nothing data-related inline in components).
@@ -68,6 +69,7 @@ super-zagreus/
 
 The backend owns these entities; the frontend consumes them. Shapes below are the frontend's working view, to be confirmed against the actual entities during planning.
 
+- **User**: `id`, `email` (the verified Google/Microsoft identity — no password), `orgId`, `role`. DA-authorized; matched to the signed-in identity by email.
 - **Organisation** (hub): `id`, `name`.
 - **Project**: `id`, `orgId`, `name`, `region`. MVP uses one default project per org.
 - **Assessment**: `id`, `projectId`, `status` (draft/current), `submittedAt` (freshness). "Current assessment" is fetched per project.
@@ -80,7 +82,7 @@ The backend owns these entities; the frontend consumes them. Shapes below are th
 
 From the existing backend (confirmed via its README/Bruno collection):
 
-- `POST /api/auth/login` → `{ token, expiresAt, user }`
+- `POST /api/auth/session` — exchange a verified Google/Microsoft ID token for an app session/JWT carrying `user` + org/role claims (replaces the prototype's username/password `login`). See §7.
 - `GET /api/categories` (public) — catalog categories + item types
 - `GET /api/units` (public) — units
 - `POST /api/organisations/{orgId}/projects` / list projects — project + region
@@ -95,7 +97,7 @@ From the existing backend (confirmed via its README/Bruno collection):
 
 Each screen is a route under `src/app`, composed from `src/components`, talking to a typed API client in `src/data`.
 
-1. **Login** (`/login`) — credentials form → login → establish session → redirect. No self-service reset link (MVP).
+1. **Login** (`/login`) — "Sign in with Google" / "Sign in with Microsoft" buttons → OAuth flow → establish session → redirect. No password or reset UI.
 2. **Current needs** (`/`, authed) — the project's current assessment as an editable list, grouped by category; shows "last confirmed" freshness. Actions: add, edit, remove, **Confirm current needs**.
 3. **Add/edit need** (modal or `/needs/new`, `/needs/[id]`) — catalog picker (browse by category + search), quantity in the item's **locked default unit** (unit shown, not chosen), optional location note, urgency, item notes. Zod-validated.
 4. **Confirm needs** — action on the current-needs screen; calls submit; surfaces the requirement of ≥1 item; updates freshness.
@@ -106,17 +108,26 @@ Shared modules: `src/data/apiClient` (fetch wrapper injecting the token, handlin
 
 ## 7. Auth & session handling
 
-- Login posts to the API; on success the **JWT is stored in an httpOnly, Secure, SameSite cookie** set by a Next.js route handler — not in `localStorage` (XSS-safety). The token never touches client JS.
-- API calls go through a **server-side proxy** (`src/app/api/...`) or server actions that read the cookie and attach `Authorization: Bearer`. This keeps the token server-side and centralizes auth.
-- **Expiry:** tokens last 8 hours. On a 401 from the backend, the proxy clears the cookie and the UI redirects to `/login`. (No silent refresh in MVP — the backend has no refresh token; re-login is required.)
+**Authentication** is delegated to Google/Microsoft via OAuth 2.0 / OIDC (Authorization Code + PKCE). Zagreus stores no passwords. **Authorization** (which org a user belongs to, their role) stays in the backend — the identity provider proves *who* the user is; it knows nothing about DA's organisations.
+
+Flow:
+
+1. On `/login`, the user picks **Google** or **Microsoft**; Auth.js runs the OIDC authorization-code flow and returns a **verified identity** (notably the verified `email`).
+2. The Next.js server exchanges that verified identity with the backend at `POST /api/auth/session` (passing the provider ID token). The backend **verifies the provider token** (issuer = Google/Microsoft, audience = our client, signature via the provider's JWKS), looks up the **User by email**, and — if that email is authorized — returns an **app session JWT** carrying the user's org + role claims. Unauthorized email → `401`, and the UI shows an "access not provisioned" message.
+3. The app JWT is stored in an **httpOnly, Secure, SameSite cookie** set by a Next.js route handler — never in `localStorage`, never exposed to client JS.
+4. API calls go through a **server-side proxy** (`src/app/api/...`) / server actions that read the cookie and attach `Authorization: Bearer <app JWT>`. The backend authorizes each request from the JWT's org/role claims.
+
+- **Why an app JWT (not the raw provider token):** it preserves the backend's existing JWT-based authorization (org/role claims, cheap per-request validation) while replacing the *credential* step with OAuth. The provider token is only used once, at session establishment.
+- **Expiry:** app JWT lifetime stays short (the prototype used 8h). On a `401`, the proxy clears the cookie and redirects to `/login`; re-authentication is a silent provider round-trip if the provider session is still active. No custom refresh-token machinery in MVP.
 - **Route protection:** Next.js middleware guards authed routes by presence/validity of the session cookie.
-- Org-scoping is enforced by the backend (org users only see their own org); the frontend does not implement its own authorization.
+- **Provider config:** OAuth client IDs/secrets and allowed redirect URIs for Google and Microsoft live in server-side env (see §13); optionally restrict to specific email domains.
 
 ## 8. Backend additions required (`apps/api`)
 
 Small, additive changes — to confirm against the actual entities during planning:
 
-1. **Missing-item request** — entity + endpoints (`POST` to create, list for DA). Structured (org/project, description, timestamp, status).
+1. **OAuth-based auth** — replace the prototype's username/password login with `POST /api/auth/session`: verify a Google/Microsoft ID token (issuer, audience, JWKS signature), match the verified email to an authorized `User`, and issue the app JWT with org/role claims. Drop password storage/fields; keep the JWT-issuing/validation and org/role model. Add a `User.email` lookup.
+2. **Missing-item request** — entity + endpoints (`POST` to create, list for DA). Structured (org/project, description, timestamp, status).
 2. **Optional need fields** — `locationNote` (free text) and `urgency` (lightweight) on `AssessmentItem`, if not already present. The PRD marks both optional.
 3. **Freshness on confirm** — verify `submit` sets/updates the timestamp used for staleness; expose it on the current-assessment response so the frontend can show "last confirmed." (Aligns with the existing `DA.NA.Staleness` module.)
 4. **CSV** stays **frontend-side** for MVP; `DA.NA.Analytics` remains a placeholder.
@@ -125,10 +136,10 @@ Small, additive changes — to confirm against the actual entities during planni
 
 Delivered with the MVP to keep DA's manual overhead low (see PRD §3):
 
-1. **Provision hub** — create an organisation and its first `OrgAdmin` user (name, email, temp credentials), using a DA admin token. Idempotent where practical.
-2. **Reset credentials** — reset/recreate a user's password (works around the prototype's "no self-service reset"), given a username/email.
+1. **Provision hub** — create an organisation and **authorize its first user by email** with a role (e.g., `OrgAdmin`), using a DA admin token. No password is set — the user gains access on first Google/Microsoft sign-in with that email. Idempotent where practical.
+2. **Authorize / deauthorize a user** — add or remove an authorized email (with role) for an org.
 
-Form factor to decide in planning: .NET console commands in the solution, or documented Bruno/CLI flows. Preference: small `dotnet` console tools living beside the API so they share entities/config.
+No credential-reset script is needed — password recovery is handled entirely by Google/Microsoft. Form factor to decide in planning: .NET console commands in the solution, or documented Bruno/CLI flows. Preference: small `dotnet` console tools living beside the API so they share entities/config.
 
 ## 10. Design system (DA guidelines → Tailwind)
 
@@ -160,7 +171,7 @@ Encode DA brand tokens in the Tailwind theme; components reference tokens only.
 - **Monorepo CI:** path-scoped pipelines — changes under `apps/web/**` build/test/deploy the frontend; changes under `apps/api/**` build/test/deploy the backend. Each app deploys independently despite sharing the repo.
 - **Frontend:** Vercel (DA's website deploy target, with the project root set to `apps/web`) or self-hosted pm2 (DA's other pattern). Env: API base URL, JWT cookie settings.
 - **Backend:** .NET + PostgreSQL on DA infrastructure (Docker/managed Postgres). The API requires a `JWT:Key` secret to start.
-- **Secrets:** API base URL and cookie config on the frontend; JWT signing key on the backend.
+- **Secrets:** frontend — API base URL, cookie config, and **Google/Microsoft OAuth client IDs + secrets and redirect URIs**; backend — app JWT signing key plus the provider issuer/audience config used to verify ID tokens.
 
 ## 14. Open questions / to verify in planning
 
@@ -168,8 +179,10 @@ Encode DA brand tokens in the Tailwind theme; components reference tokens only.
 - Whether `locationNote`/`urgency` already exist on `AssessmentItem`.
 - Confirm `submit` updates the freshness timestamp and how staleness is computed.
 - Deployment target for the frontend (Vercel vs self-hosted).
+- Google + Microsoft OAuth app registration (client IDs/secrets, redirect URIs) and whether to restrict sign-in to specific email domains.
+- Auth.js compatibility with Next.js 16 / React 19 (else a direct OIDC client).
 - Final taxonomy-sheet ↔ seeded-catalog mapping (owned by DA).
 
 ## 15. Out of scope (MVP)
 
-As per PRD §8: impact/analytics reporting, fulfillment tracking, staff-facing UI, in-app user management, self-service password reset, multi-project UI, unit override / local units, frontline-group modeling, PDF export, sourcing/modeling integration.
+As per PRD §8: impact/analytics reporting, fulfillment tracking, staff-facing UI, in-app user management, additional identity providers / org SSO, multi-project UI, unit override / local units, frontline-group modeling, PDF export, sourcing/modeling integration.

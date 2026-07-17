@@ -30,7 +30,7 @@ This version reconciles the original product scope with two existing prototypes:
 - No impact/value metrics shown to partners.
 - No fulfillment or delivery tracking.
 - No DA staff-facing admin interface inside the app (DA uses provisioning scripts + the API for now).
-- No in-app user management or self-service password reset (handled by DA via scripts for now).
+- No in-app user management (DA provisions users). Authentication is delegated to Google/Microsoft sign-in, so Zagreus owns no passwords and builds no password/reset flows.
 - No modeling of the frontline groups a hub serves.
 
 ## 3. Users & access
@@ -40,8 +40,10 @@ This version reconciles the original product scope with two existing prototypes:
 **Primary user:** a person at a hub organization who records and confirms the hub's needs.
 
 - Partner accounts are **provisioned by DA** — there is no public sign-up.
-- The backend already supports multiple users per organization and DA/organization roles, but the **MVP frontend is login-only**: it does not expose in-app user management. DA provisions the hub's user(s).
-- To keep DA's manual overhead low, the MVP includes **admin/ops scripts** (in the API app, `apps/api`) to (a) provision a hub organization and its first admin user, and (b) reset/recreate a user's credentials. Self-service reset is future work.
+- **Authentication is delegated to Google/Microsoft sign-in (OAuth/OIDC).** Every hub user signs in with a Google or Microsoft account they already have; Zagreus stores no passwords.
+- DA provisions access by **authorizing a user's email address** and assigning it to a hub organization with a role. On first sign-in, the verified email is matched to that authorization. A user who signs in with an email DA hasn't authorized is denied access (no self-provisioning).
+- The backend still owns the **organization and role model** (authorization) — Google/Microsoft prove identity only. The **MVP frontend is login-only**: it does not expose in-app user management.
+- To keep DA's manual overhead low, the MVP includes an **admin/ops script** (in the API app, `apps/api`) to provision a hub organization and authorize its user(s) by email + role. No credential-reset script is needed — password issues are handled by Google/Microsoft.
 - Organization users only ever see data belonging to their own organization.
 - DA staff are not users of the MVP interface; a staff-facing view is future work.
 
@@ -69,10 +71,10 @@ This version reconciles the original product scope with two existing prototypes:
 ## 5. Functional requirements
 
 ### 5.1 Authentication & accounts
-- DA provisions a hub organization and its user(s) via admin scripts; the partner receives credentials.
-- The partner can log in securely and log out.
+- The partner signs in with **Google or Microsoft** (OAuth/OIDC) and can sign out. No passwords are stored by Zagreus.
+- DA provisions a hub organization and authorizes its user(s) by email (with a role) via an admin script; access is granted the first time that email signs in.
+- A user whose signed-in email is not authorized is denied access.
 - All data a user sees is scoped to their own organization; no partner can see another partner's data.
-- Password reset for the MVP is DA-assisted via an admin script (no self-service reset in the UI).
 
 ### 5.2 Catalog
 - The app's catalog is the backend's seeded categories / item types.
@@ -119,7 +121,7 @@ This version reconciles the original product scope with two existing prototypes:
 - **Needs vs. fulfillment tracking** — what DA has sourced/delivered against each need.
 - **DA staff-facing view** — an in-app admin interface across all partners.
 - **In-app user management** — a hub admin invites/manages its own users (backend already supports this).
-- **Self-service password reset** — email-based (DA's stack uses Resend).
+- **Additional identity providers / org SSO** — providers beyond Google/Microsoft, or organization-level SSO federation.
 - **Multiple projects per hub in the UI** — expose the backend's multi-project support.
 - **Unit flexibility** — unit override per item and, importantly, letting partners work in their **own local units** rather than DA's normalized defaults (adds UX and data-normalization complexity).
 - **Frontline-group modeling** — attribute a hub's needs to the specific frontline groups it serves.
@@ -140,6 +142,6 @@ The MVP scope was reconciled against the `zagreus-be` prototype's existing data 
 
 1. **Needs time model** — *Hybrid.* Living-list UX over the backend's submitted assessment; "confirm my current needs" snapshots history and resets the staleness clock. (Original PRD: pure standing list. Backend: draft→submit assessment + current assessment.)
 2. **Structure** — *Adopt org → project(region), one project per hub in the MVP UI.* Multi-project supported underneath; frontline groups deferred. (Original PRD: one flat list, free-text location, multi-site deferred.)
-3. **Accounts & auth** — *Login-only frontend against the existing JWT API; DA provisions via admin scripts; no in-app user management or self-service reset in MVP.* (Original PRD: one login per org, basic reset. Backend: multi-user orgs + roles, no reset yet.)
+3. **Accounts & auth** — *Authentication delegated to Google/Microsoft (OAuth/OIDC); no passwords stored. DA authorizes users by email + role via an admin script; the backend keeps the org/role model for authorization. Login-only frontend, no in-app user management in MVP.* (Original PRD: one login per org, basic reset. Backend prototype: custom username/password + JWT — replaced by OAuth. Revisited after initial reconciliation because rolling our own auth is avoidable risk.)
 4. **Units** — *Locked default unit per item for MVP;* unit override and partner-local units are future work. (Backend: explicit unit per item from a fixed list.)
 5. **Catalog & missing items** — *Catalog = backend seeded reference data; dedicated structured missing-item request.* (Original PRD: seed a clean catalog + free-text request flag.)
