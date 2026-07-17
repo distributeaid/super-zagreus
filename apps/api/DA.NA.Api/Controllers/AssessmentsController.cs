@@ -47,7 +47,12 @@ public class AssessmentsController : ControllerBase
         return Ok(assessments);
     }
 
-    /// <summary>Get the latest submitted assessment for a project, including all items.</summary>
+    /// <summary>
+    /// Get the latest submitted assessment for a project (summary shape — id, status,
+    /// notes, timestamps, item count). Projected to avoid returning the tracked entity
+    /// graph, which would form an Items[].Assessment back-reference cycle that
+    /// System.Text.Json cannot serialize.
+    /// </summary>
     [HttpGet("api/projects/{projectId:guid}/assessments/current")]
     public async Task<IActionResult> GetCurrent(Guid projectId)
     {
@@ -59,10 +64,14 @@ public class AssessmentsController : ControllerBase
             return NotFound("Project not found");
 
         var assessment = await _db.NeedsAssessments
-            .Include(a => a.Items).ThenInclude(i => i.ItemType)
-            .Include(a => a.Items).ThenInclude(i => i.Unit)
             .Where(a => a.ProjectId == projectId && a.Status == AssessmentStatus.Submitted)
             .OrderByDescending(a => a.SubmittedAt)
+            .Select(a => new
+            {
+                a.Id, a.Status, a.Notes,
+                a.CreatedAt, a.SubmittedAt,
+                ItemCount = a.Items.Count
+            })
             .FirstOrDefaultAsync();
 
         if (assessment is null)
