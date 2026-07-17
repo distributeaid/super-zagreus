@@ -31,5 +31,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.apiError = token.apiError as boolean | undefined;
       return session;
     },
+    authorized({ auth }) {
+      return !!auth?.apiToken && !auth.apiError;
+    },
   },
 });
