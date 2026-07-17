@@ -85,7 +85,7 @@ This version reconciles the original product scope with two existing prototypes:
 
 ### 5.3 Intake — recording needs
 - View the current needs for the hub's project, grouped/sortable by category.
-- Add a need: select a catalog item (browse or search), enter a quantity in the item's locked default unit, optionally add a location note, urgency/needed-by, and item notes.
+- Add a need: select a catalog item (browse or search) and enter a quantity in the item's locked default unit.
 - Edit or remove a need.
 - **Edits save automatically** — each add/edit/remove persists immediately with no manual "Save", so a half-updated list is never lost if the partner is interrupted and returns later.
 - **Confirm current needs**: a separate, explicit step (distinct from auto-saving edits) that snapshots the current set for history and resets the list's freshness clock.
@@ -111,7 +111,6 @@ This version reconciles the original product scope with two existing prototypes:
 - As a hub user, I can log in with the account DA gave me and land on a dashboard for my project.
 - As a hub user, I can see at a glance whether my needs list is up to date or needs updating, and jump straight in to review it.
 - As a hub user, I can add a need by finding the right item in DA's catalog and entering how many I need.
-- As a hub user, I can note where something is needed and how urgently, without being forced to.
 - As a hub user, when the item I need isn't listed, I can request it so DA can add it.
 - As a hub user, I can keep my needs up to date and confirm them so DA knows they're current.
 - As a hub user, I can see a clean summary of my needs by category, see when I last confirmed them, and export to CSV.
@@ -137,7 +136,6 @@ This version reconciles the original product scope with two existing prototypes:
 - **Multiple projects per hub in the UI** — expose the backend's multi-project support (the dashboard grows into an org/project list).
 - **Unit flexibility** — unit override per item and, importantly, letting partners work in their **own local units** rather than DA's normalized defaults (adds UX and data-normalization complexity).
 - **Frontline-group modeling** — attribute a hub's needs to the specific frontline groups it serves.
-- **Structured urgency/timeframes** — replace the lightweight urgency field with structured needed-by dates and levels.
 - **PDF export** and richer report formats.
 - **Sourcing & predictive modeling integration** — feed needs data into DA's sourcing and forecasting.
 
