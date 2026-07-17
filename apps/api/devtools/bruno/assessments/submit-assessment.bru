@@ -1,0 +1,15 @@
+meta {
+  name: Submit Assessment
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/assessments/:id/submit
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id:
+}

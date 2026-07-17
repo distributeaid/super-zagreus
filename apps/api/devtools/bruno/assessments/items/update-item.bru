@@ -1,0 +1,24 @@
+meta {
+  name: Update Item
+  type: http
+  seq: 2
+}
+
+patch {
+  url: {{baseUrl}}/api/assessments/:id/items/:itemId
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id:
+  itemId:
+}
+
+body:json {
+  {
+    "quantity": null,
+    "unitId": null,
+    "notes": null
+  }
+}

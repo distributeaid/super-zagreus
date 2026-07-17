@@ -1,0 +1,24 @@
+meta {
+  name: Update Org User
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/api/organisations/:orgId/users/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  orgId:
+  id:
+}
+
+body:json {
+  {
+    "firstName": null,
+    "lastName": null,
+    "email": null
+  }
+}

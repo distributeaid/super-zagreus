@@ -1,0 +1,15 @@
+meta {
+  name: Get Assessments by Project
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/projects/:projectId/assessments
+  body: none
+  auth: inherit
+}
+
+params:path {
+  projectId:
+}

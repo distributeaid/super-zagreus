@@ -1,0 +1,21 @@
+meta {
+  name: Update Assessment
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/api/assessments/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id:
+}
+
+body:json {
+  {
+    "notes": "Updated notes"
+  }
+}

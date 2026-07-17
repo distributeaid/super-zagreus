@@ -1,0 +1,39 @@
+meta {
+  name: DA Needs Assessment
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:pre-request {
+  // Skip auto-login for the login endpoint itself
+  if (req.url.includes("/api/auth/login")) {
+    return;
+  }
+  
+  const expiresAt = bru.getEnvVar("tokenExpiresAt");
+  const token = bru.getEnvVar("accessToken");
+  const isExpired = !expiresAt || Date.now() >= parseInt(expiresAt);
+  
+  if (!token || isExpired) {
+    const baseUrl = bru.getEnvVar("baseUrl");
+    const username = bru.getEnvVar("username");
+    const password = bru.getEnvVar("password");
+  
+    const axios = require("axios");
+    const res = await axios.post(`${baseUrl}/api/auth/login`, { username, password });
+  
+    if (res.status !== 200) {
+      throw new Error(`Auto-login failed (${res.status}). Check your email/password env vars.`);
+    }
+  
+    const data = res.data;
+    bru.setEnvVar("accessToken", data.token);
+    bru.setEnvVar("tokenExpiresAt", new Date(data.expiresAt).getTime().toString());
+  }
+}

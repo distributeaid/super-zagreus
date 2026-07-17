@@ -1,0 +1,15 @@
+meta {
+  name: Get Projects by Organisation
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/organisations/:orgId/projects
+  body: none
+  auth: inherit
+}
+
+params:path {
+  orgId:
+}

@@ -1,0 +1,28 @@
+<Project>
+  <!--
+    Properties here apply to every project in the solution.
+    Individual .csproj files can override these if needed.
+  -->
+  <PropertyGroup>
+    <!--
+      Treat specific compiler warnings as build errors.
+      These are patterns that are almost never intentional — they indicate a real bug
+      or dead code, not a style preference.
+
+      CS4014  An async method was called without await. The call fires and is immediately
+              forgotten — any exceptions it throws will be silently swallowed and the
+              result is discarded. Almost always a missing "await" keyword.
+
+      CS1998  An async method has no await operators. It will run synchronously despite
+              the async signature. Either add an await or remove the async keyword.
+
+      CS0162  Unreachable code detected. A return, throw, or always-false condition means
+              some lines will never execute. Usually a logic error.
+
+      CS0168  A variable was declared but never used. Dead code.
+
+      CS0219  A variable was assigned a value that is never read. Dead code.
+    -->
+    <WarningsAsErrors>$(WarningsAsErrors);CS4014;CS1998;CS0162;CS0168;CS0219</WarningsAsErrors>
+  </PropertyGroup>
+</Project>

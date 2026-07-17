@@ -1,0 +1,21 @@
+meta {
+  name: Create DA User
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/users
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "username": "jsmith",
+    "firstName": "Jane",
+    "lastName": "Smith",
+    "email": "jane.smith@distributeaid.org",
+    "role": "DaAdmin"
+  }
+}

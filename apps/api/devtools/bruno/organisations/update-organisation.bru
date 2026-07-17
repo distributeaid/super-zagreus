@@ -1,0 +1,22 @@
+meta {
+  name: Update Organisation
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/api/organisations/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id:
+}
+
+body:json {
+  {
+    "name": null,
+    "salesforceId": null
+  }
+}
