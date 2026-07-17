@@ -41,12 +41,27 @@ public class OidcIdTokenVerifier : IIdTokenVerifier
         var parameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidIssuer = oidc.Issuer,
             ValidateAudience = true,
             ValidAudience = audience,
             ValidateLifetime = true,
             IssuerSigningKeys = oidc.SigningKeys,
         };
+
+        if (provider == "microsoft")
+        {
+            // Microsoft's "common" discovery endpoint publishes a templated, multi-tenant
+            // issuer ("https://login.microsoftonline.com/{tenantid}/v2.0") rather than a
+            // fixed string. A real token's issuer contains the actual tenant GUID in place
+            // of "{tenantid}", so a plain ValidIssuer comparison would reject every real
+            // sign-in. Use a custom validator that matches the template instead.
+            var expectedTemplate = oidc.Issuer;
+            parameters.IssuerValidator = (issuer, _, _) =>
+                TemplatedIssuerValidator.Validate(issuer, expectedTemplate);
+        }
+        else
+        {
+            parameters.ValidIssuer = oidc.Issuer;
+        }
 
         var handler = new JsonWebTokenHandler();
         var result = await handler.ValidateTokenAsync(idToken, parameters);
