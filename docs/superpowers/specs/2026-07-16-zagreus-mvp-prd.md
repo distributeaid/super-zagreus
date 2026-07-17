@@ -64,7 +64,7 @@ This version reconciles the original product scope with two existing prototypes:
 - Reference to a catalog item (required)
 - Quantity (required), entered in the item's **locked default unit** for the MVP (the partner does not choose the unit)
 
-**Needs list** — the partner's current set of needs for their project. The partner edits it like a **living list**, then **confirms** it ("confirm my current needs"). Confirming snapshots the current state for history and **resets the list's freshness clock**. Between confirmations the partner can freely edit. This gives a living-list experience while retaining dated history that DA can trend over time.
+**Needs list** — the partner's current set of needs for their project. The partner edits it like a **living list**, then **confirms** it ("confirm my current needs"). Confirming snapshots the current state for history and **resets the list's freshness clock**. Between confirmations the partner can freely edit, and **edits are saved automatically as they go** (no manual "Save"), so unfinished work is never lost if they step away mid-update. This gives a living-list experience while retaining dated history that DA can trend over time.
 
 **Freshness / staleness** — freshness is tracked **once per needs list** (a single "last confirmed" date), not per item. A list "needs updating" when it hasn't been confirmed in **90 days** (a fixed, DA-tunable window). Confirming the list resets it to fresh. There is no per-item freshness: because a partner always reviews and confirms the whole list, one list-level date is authoritative (per-item tracking is deferred to a possible future "partial confirmation" feature).
 
@@ -87,7 +87,8 @@ This version reconciles the original product scope with two existing prototypes:
 - View the current needs for the hub's project, grouped/sortable by category.
 - Add a need: select a catalog item (browse or search), enter a quantity in the item's locked default unit, optionally add a location note, urgency/needed-by, and item notes.
 - Edit or remove a need.
-- **Confirm current needs**: submit the current set, which snapshots it for history and resets the freshness clock.
+- **Edits save automatically** — each add/edit/remove persists immediately with no manual "Save", so a half-updated list is never lost if the partner is interrupted and returns later.
+- **Confirm current needs**: a separate, explicit step (distinct from auto-saving edits) that snapshots the current set for history and resets the list's freshness clock.
 - Request an item not in the catalog via a dedicated structured form; the request is stored for DA review.
 
 ### 5.4 Reporting — viewing needs

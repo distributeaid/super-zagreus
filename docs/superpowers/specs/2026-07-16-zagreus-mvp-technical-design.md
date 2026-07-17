@@ -100,9 +100,9 @@ Each screen is a route under `src/app`, composed from `src/components`, talking 
 
 1. **Login** (`/login`) — "Sign in with Google" / "Sign in with Microsoft" buttons → OAuth flow → establish session → redirect to the dashboard. No password or reset UI.
 2. **Dashboard / home** (`/`, authed) — the landing page after sign-in. Shows the hub's **project card** (name + region) with a **freshness status**: an "up to date" / "needs updating" badge derived from `lastConfirmedAt` vs the 90-day window, plus "last confirmed X days ago", and a primary **"Review & confirm needs"** CTA into the needs editor. Built to scale to a **list of project cards** later (org/project list is future work). The stale badge is the MVP "notification"; automated email/push nudges are deferred.
-3. **Current needs** (`/needs`, authed) — the project's current assessment as an editable list, grouped by category; shows "last confirmed" freshness. Actions: add, edit, remove, **Confirm current needs**.
+3. **Current needs** (`/needs`, authed) — the project's current assessment as an editable list, grouped by category; shows "last confirmed" freshness. **Edits auto-save**: each add/edit/remove is persisted immediately to the draft assessment via the API (no manual "Save"), so an interrupted, half-updated list is never lost. Actions: add, edit, remove, **Confirm current needs** (a separate, explicit step).
 4. **Add/edit need** (modal or `/needs/new`, `/needs/[id]`) — catalog picker (browse by category + search), quantity in the item's **locked default unit** (unit shown, not chosen), optional location note, urgency, item notes. Built with React Hook Form + Zod (`useFieldArray` for the needs list).
-5. **Confirm needs** — action on the current-needs screen; calls submit; sets `lastConfirmedAt = now`, which resets the whole list's freshness (and clears the dashboard "needs updating" state). Surfaces the requirement of ≥1 item.
+5. **Confirm needs** — action on the current-needs screen, distinct from the always-on auto-save of edits; calls submit; sets `lastConfirmedAt = now`, which resets the whole list's freshness (and clears the dashboard "needs updating" state). Surfaces the requirement of ≥1 item.
 6. **Missing-item request** (`/needs/request` or modal) — structured free-text request form → new endpoint.
 7. **Reporting / summary** (`/summary`, authed) — current needs grouped by category with totals + last-confirmed date; **Export CSV** (client-side).
 
@@ -180,6 +180,7 @@ Encode DA brand tokens in the Tailwind theme; components reference tokens only.
 - Exact backend entity shapes and the full set of item edit/remove endpoints.
 - Whether `locationNote`/`urgency` already exist on `AssessmentItem`.
 - Confirm `submit` updates the freshness timestamp and how staleness is computed.
+- Draft/edit lifecycle for **auto-save**: confirm edits persist to a resumable, per-project draft between sessions (so an interrupted list is preserved) until the user confirms — and how that draft relates to the "current" (last-confirmed) assessment.
 - Deployment target for the frontend (Vercel vs self-hosted).
 - Google + Microsoft OAuth app registration (client IDs/secrets, redirect URIs) and whether to restrict sign-in to specific email domains.
 - Auth.js compatibility with Next.js 16 / React 19 (else a direct OIDC client).
