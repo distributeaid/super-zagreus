@@ -6,6 +6,7 @@ const API_BASE = process.env.API_BASE_URL!;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [Google, MicrosoftEntraId],
+  pages: { signIn: "/login" },
   callbacks: {
     async jwt({ token, account }) {
       // On initial sign-in, exchange the provider id_token for an app JWT.
