@@ -58,13 +58,11 @@ This version reconciles the original product scope with two existing prototypes:
 
 > An outstanding **task** (not a design decision): DA reconciles the "Needs Reporting Categories" taxonomy sheet against the backend's seeded categories/item types so the two match. The taxonomy's modeling/reference columns (USD value, weight, volume, impact factors) remain internal to DA and are excluded from the MVP catalog; they will power future impact reporting.
 
-**Need (assessment item)** — a single line item of need:
+**Need (item)** — a single line item of need:
 - Reference to a catalog item (required)
 - Quantity (required), entered in the item's **locked default unit** for the MVP (the partner does not choose the unit)
-- Optional free-text location note and lightweight urgency/needed-by
-- Optional free-text item notes
 
-**Needs / assessment** — the partner's current set of needs for their project. The partner edits it like a **living list**, then **confirms** it ("confirm my current needs"). Confirming snapshots the current state for history and **resets the freshness/staleness clock**. Between confirmations the partner can freely edit. This gives a living-list experience while retaining dated history that DA can trend over time.
+**Needs list** — the partner's current set of needs for their project. The partner edits it like a **living list**, then **confirms** it ("confirm my current needs"). Confirming snapshots the current state for history and **resets the freshness/staleness clock**. Between confirmations the partner can freely edit. This gives a living-list experience while retaining dated history that DA can trend over time.
 
 **Missing-item request** — when a partner needs an item not in the catalog, they submit a **dedicated, structured request** captured separately for DA to review and, if appropriate, add to the catalog. It does not create a need until DA acts on it.
 
