@@ -1,6 +1,7 @@
 import { signOut } from "@/auth";
 import { Button } from "@/components/ui/Button";
 
+/** Shown when a user authenticated with the provider but isn't provisioned in the API. */
 export default function AccessDeniedPage() {
   return (
     <main className="container flex min-h-screen flex-col items-center justify-center gap-da-md text-center">

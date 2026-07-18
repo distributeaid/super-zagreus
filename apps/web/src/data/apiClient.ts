@@ -4,6 +4,19 @@ import { auth } from "@/auth";
 
 const API_BASE = process.env.API_BASE_URL!;
 
+/**
+ * Server-only GET helper for the backend API. Reads the app JWT from the Auth.js
+ * session and attaches it as a Bearer token.
+ *
+ * Auth handling (the `/dashboard` proxy guard normally prevents these, but this is
+ * the defensive fallback): a missing token or a `401` response redirects to `/login`
+ * to re-authenticate. A `404` resolves to `null` (treated as "no data yet").
+ *
+ * @typeParam T The expected JSON response shape.
+ * @param path API path beginning with `/` (e.g. `/api/me`).
+ * @returns The parsed JSON as `T`, or `null` for a `404`.
+ * @throws Error on any non-2xx response other than `401`/`404`.
+ */
 export async function apiGet<T>(path: string): Promise<T> {
   const session = await auth();
   const token = session?.apiToken;

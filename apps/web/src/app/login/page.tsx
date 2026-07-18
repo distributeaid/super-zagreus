@@ -1,6 +1,7 @@
 import { signIn } from "@/auth";
 import { Button } from "@/components/ui/Button";
 
+/** Sign-in page: Google/Microsoft buttons that start the Auth.js OAuth flow. */
 export default function LoginPage() {
   return (
     <main className="container flex min-h-screen flex-col items-center justify-center gap-da-lg">

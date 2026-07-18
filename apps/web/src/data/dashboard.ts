@@ -4,12 +4,23 @@ type Me = { id: string; email: string; role: string; orgId: string | null; orgNa
 type Project = { id: string; name: string; region: string | null };
 type CurrentAssessment = { submittedAt: string } | null;
 
+/** View model for the dashboard page: the caller's org, their project, and its freshness clock. */
 export type Dashboard = {
   orgName: string | null;
   project: Project | null;
   lastConfirmedAt: string | null;
 };
 
+/**
+ * Assemble the dashboard view model for the signed-in user.
+ *
+ * Reads the caller's org (`/api/me`), their first project, and that project's
+ * current submitted assessment, degrading gracefully at each step: no org, no
+ * project, or no submitted assessment each yield `null` fields rather than an error.
+ *
+ * @returns The org name, the project (or `null`), and the last-confirmed timestamp
+ *          (`SubmittedAt` of the current assessment, or `null` if none).
+ */
 export async function loadDashboard(): Promise<Dashboard> {
   const me = await apiGet<Me>("/api/me");
   if (!me?.orgId) return { orgName: me?.orgName ?? null, project: null, lastConfirmedAt: null };

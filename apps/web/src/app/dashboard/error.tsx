@@ -2,6 +2,12 @@
 
 import { Button } from "@/components/ui/Button";
 
+/**
+ * Error boundary for the dashboard route. Catches errors thrown while loading the
+ * dashboard (e.g. an unexpected API failure) and offers retry / re-sign-in.
+ *
+ * @param reset Next.js-provided callback to retry rendering the segment.
+ */
 export default function DashboardError({
   error,
   reset,

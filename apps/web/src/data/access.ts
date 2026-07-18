@@ -16,6 +16,14 @@ export type SessionAccessInput =
   | null
   | undefined;
 
+/**
+ * Decide what a request with the given session may do, used by the route guard.
+ *
+ * @param session The Auth.js session (or `null`/`undefined` when not signed in).
+ * @param now Reference time for the expiry check (injectable for tests).
+ * @returns `"denied"` if the backend rejected the account (`apiError`), `"allow"` for a
+ *          valid unexpired token, otherwise `"reauth"` (not signed in, or token missing/expired).
+ */
 export function sessionAccess(
   session: SessionAccessInput,
   now: Date = new Date(),

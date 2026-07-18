@@ -1,6 +1,10 @@
 import { freshnessStatus } from "@/data/freshness";
 import { Button } from "@/components/ui/Button";
 
+/**
+ * Card showing a project's name, region, and a freshness badge derived from its
+ * last-confirmed timestamp (see {@link freshnessStatus}), plus the review CTA.
+ */
 export function ProjectCard({
   name, region, lastConfirmedAt,
 }: { name: string; region: string | null; lastConfirmedAt: string | null }) {
