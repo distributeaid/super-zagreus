@@ -59,5 +59,11 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<User>().HasIndex(u => u.Username).IsUnique();
         modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
         modelBuilder.Entity<Unit>().HasIndex(u => u.Name).IsUnique();
+
+        // At most one open (Draft) assessment per project. Status is stored as a string.
+        modelBuilder.Entity<NeedsAssessment>()
+            .HasIndex(a => a.ProjectId)
+            .HasFilter("\"Status\" = 'Draft'")
+            .IsUnique();
     }
 }
