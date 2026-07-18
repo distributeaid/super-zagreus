@@ -2,9 +2,14 @@
 
 ## How it works
 
-The API uses JWT (JSON Web Token) authentication. When you log in, you receive a token that proves who you are. You include that token in every subsequent request and the API uses it to determine what you're allowed to do.
+The API uses JWT (JSON Web Token) authentication. You obtain a token that proves who you are, include it in every subsequent request, and the API uses it to determine what you're allowed to do.
 
-Tokens expire after 8 hours. You don't need to manage this manually — the Bruno collection handles it automatically (see below).
+There are two ways to get a token:
+
+- **Password login** (`POST /api/auth/login`) — for DA team users and the seeded admin. See [Logging in](#logging-in).
+- **Google/Microsoft sign-in** (`POST /api/auth/session`) — for partner (organisation) users, who have no password. See [Signing in with Google or Microsoft](#signing-in-with-google-or-microsoft-oauth).
+
+Either way you receive the same token, and it expires after 8 hours. You don't need to manage this manually — the Bruno collection handles it automatically (see below).
 
 ---
 
@@ -72,6 +77,46 @@ Authorization: Bearer eyJ...
 
 ---
 
+## Signing in with Google or Microsoft (OAuth)
+
+Partner (organisation) users don't have passwords — they sign in with Google or Microsoft. The web app (`apps/web`) runs the provider sign-in, then exchanges the provider's OIDC **ID token** for an app token:
+
+```
+POST /api/auth/session
+{
+  "idToken": "<the Google/Microsoft ID token>",
+  "provider": "google"          // or "microsoft"
+}
+```
+
+The API verifies the ID token against the provider's published signing keys — signature, issuer, audience (the configured `OAuth:{provider}:ClientId`), and expiry — then maps the **verified email** to a `User`. On success it returns the same `{ token, expiresAt, user }` shape as password login.
+
+It returns **401** when:
+- the ID token can't be verified, or the email isn't verified by the provider, or
+- the email doesn't match a provisioned user (`"This account is not authorized…"`).
+
+Note that only the **email** is used to authorize — a user does not need a password to sign in this way. See [Provisioning a partner user](#provisioning-a-partner-user-oauth) below, and [docs/local-development.md](../../../docs/local-development.md) for the OAuth client setup and `apps/web/.env.local`.
+
+---
+
+## Who am I? (`GET /api/me`)
+
+Returns the signed-in user's identity, org, and role — used by the web app to learn the caller's `orgId` without hard-coding it:
+
+```
+GET /api/me           (requires Authorization: Bearer <token>)
+
+{
+  "id": "...",
+  "email": "hub@example.org",
+  "role": "OrgAdmin",
+  "orgId": "...",
+  "orgName": "Aegean Hub"
+}
+```
+
+---
+
 ## Using Bruno (recommended)
 
 The Bruno collection handles auth automatically. You just need to set your credentials in the environment:
@@ -96,6 +141,18 @@ Swagger UI requires you to log in manually:
 ---
 
 ## Setting up users for the first time
+
+There are two kinds of users:
+
+- **Password users** (DA team) — created via the API with a `DaAdmin` token (below).
+- **Partner users** (organisation) — authorized by email with no password; they sign in
+  via Google/Microsoft. Provision them with the console tool (see
+  [Provisioning a partner user](#provisioning-a-partner-user-oauth)).
+
+Any user whose email matches their Google/Microsoft account can sign in via OAuth,
+regardless of whether they also have a password.
+
+### Creating password users (API)
 
 All user management requires a `DaAdmin` token.
 
@@ -129,6 +186,20 @@ POST /api/organisations/{orgId}/users
   "role": "OrgAdmin"
 }
 ```
+
+### Provisioning a partner user (OAuth)
+
+Partner users are authorized by **email, with no password**. The `DA.NA.Provision` console
+tool creates an organisation, a project, and an `OrgAdmin` user in one idempotent step:
+
+```
+dotnet run --project apps/api/tools/DA.NA.Provision -- \
+  --org "Aegean Hub" --region "Greece" --email partner@their-domain.org
+```
+
+The email must exactly match the account they sign in with at Google/Microsoft. Re-running
+with the same `--org` attaches more users to the existing organisation. Full OAuth setup is
+in [docs/local-development.md](../../../docs/local-development.md).
 
 ---
 
