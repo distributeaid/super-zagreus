@@ -1,6 +1,8 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import MicrosoftEntraId from "next-auth/providers/microsoft-entra-id";
+import { NextResponse } from "next/server";
+import { sessionAccess } from "@/data/access";
 
 const API_BASE = process.env.API_BASE_URL!;
 
@@ -30,10 +32,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       session.apiToken = token.apiToken as string | undefined;
       session.apiError = token.apiError as boolean | undefined;
+      session.apiExpiresAt = token.apiExpiresAt as string | undefined;
       return session;
     },
-    authorized({ auth }) {
-      return !!auth?.apiToken && !auth.apiError;
+    authorized({ auth, request }) {
+      const decision = sessionAccess(auth);
+      if (decision === "allow") return true;
+      // Signed in, but the backend rejected the account → dedicated page.
+      if (decision === "denied")
+        return NextResponse.redirect(new URL("/access-denied", request.nextUrl));
+      // Not signed in, or the app token is missing/expired → re-authenticate.
+      // Returning false lets Auth.js redirect to the configured signIn page (/login).
+      return false;
     },
   },
 });
