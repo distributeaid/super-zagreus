@@ -107,11 +107,31 @@ searchable list (`{ id, name, category, defaultUnit }`) and filters by name.
 
 ## Testing
 
-- **Backend:** the working-draft xUnit tests above.
-- **Frontend (Vitest, `describe`/`it`, docstrings):** the catalog flatten+search helper;
-  `NeedRow`; `AddNeed`; and the View-vs-Edit selection logic. Server-action core logic is
-  extracted into testable functions where practical (as with `sessionExchange`), so the
-  mutation behavior is unit-covered without booting Next.
+**Principle:** every unit with behavior or branching gets a unit test, and presentational
+components get render tests (consistent with the existing `Button` / `ProjectCard` tests).
+The only things not tested directly are the async **server component** (`NeedsPage`) and the
+**server actions**, which Vitest can't exercise cleanly — so their logic is extracted into
+pure functions (as with `sessionAccess` / `sessionExchange`) and those are tested.
+
+**Backend (xUnit, `TestBase` + `ApiFactory` + `JwtHelper`):** working-draft
+creates-when-none, seeds-from-current, resumes-existing, empty-when-no-prior, cross-org 404.
+
+**Frontend (Vitest, `describe`/`it`, docstrings):**
+
+- **Pure logic:** the catalog flatten+search helper; the **View-vs-Edit selection** function
+  extracted from `NeedsPage`; and any input-shaping extracted from the server actions.
+- **Extended API client:** `apiPost` / `apiPatch` / `apiDelete` — bearer header,
+  `401 → /login`, and error handling — mirroring the existing `apiGet` tests.
+- **Components (React Testing Library):**
+  - `AddNeed` — typeahead filters the catalog by name; selecting an item adds it with the
+    locked default unit and quantity 1.
+  - `NeedRow` — a quantity change triggers save; the remove control fires removal.
+  - `ConfirmButton` — disabled when the list is empty (mirrors the API's ≥1-item rule).
+  - `CurrentNeeds` — groups by category, renders the "last confirmed" line, and the empty state.
+  - `NeedsEditor` — renders rows grouped by category and wires the add / confirm controls.
+
+This covers every component and branch; the server component and server actions are covered
+through their extracted logic plus the API-client tests.
 
 ## References
 
