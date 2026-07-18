@@ -67,4 +67,26 @@ describe("apiClient mutations", () => {
     await expect(apiPost("/api/x", {})).rejects.toThrow("REDIRECT:/login");
     vi.unstubAllGlobals();
   });
+
+  it("throws when the API returns a non-ok, non-401 response", async () => {
+    authMock.mockResolvedValue({ apiToken: "app-jwt" });
+    vi.stubGlobal("fetch", fetchReturning({ ok: false, status: 500 }));
+
+    await expect(apiPost("/api/x", {})).rejects.toThrow("API POST /api/x failed: 500");
+    vi.unstubAllGlobals();
+  });
+
+  it("apiDelete sends no content-type header when there is no body", async () => {
+    authMock.mockResolvedValue({ apiToken: "app-jwt" });
+    const fetchImpl = fetchReturning({ ok: true, status: 204 });
+    vi.stubGlobal("fetch", fetchImpl);
+
+    await apiDelete("/api/x/1");
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "http://api.test/api/x/1",
+      expect.objectContaining({ method: "DELETE", headers: { authorization: "Bearer app-jwt" } }),
+    );
+    vi.unstubAllGlobals();
+  });
 });
