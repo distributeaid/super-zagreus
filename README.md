@@ -41,9 +41,15 @@ apps/
   web/    Next.js app (src/app, src/data, src/components)
 docs/
   local-development.md          credentials & secrets setup
+  style-guide.md                code & test conventions
   superpowers/specs/            PRD + technical design
   superpowers/plans/            implementation plans
 ```
+
+## Conventions
+
+Code and test conventions (docstrings, imports, test structure) live in
+[docs/style-guide.md](docs/style-guide.md).
 
 ## Tooling
 
