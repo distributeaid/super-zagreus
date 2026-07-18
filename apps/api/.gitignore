@@ -1,0 +1,48 @@
+# Build output
+bin/
+obj/
+
+# .NET user-specific files
+*.user
+*.suo
+.vs/
+
+# EF Core migrations snapshot (keep the Migrations folder but ignore designer files if needed)
+# Uncomment the line below only if you want to exclude migration snapshots:
+# **/Migrations/*Designer.cs
+
+# Rider / JetBrains
+.idea/
+
+# dependencies
+/node_modules
+
+# VS Code
+.vscode/
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# macOS
+.DS_Store
+
+# User secrets (never commit these)
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json
+
+# dotnet tool manifest (keep this if you use local tools)
+# .config/dotnet-tools.json
+
+# NuGet packages (restored on build)
+*.nupkg
+.nuget/
+
+# Logs
+*.log
+logs/
+

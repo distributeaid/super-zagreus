@@ -1,0 +1,22 @@
+meta {
+  name: Create Project
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/organisations/:orgId/projects
+  body: json
+  auth: inherit
+}
+
+params:path {
+  orgId:
+}
+
+body:json {
+  {
+    "name": "Winter Distribution 2025",
+    "region": "Greece"
+  }
+}

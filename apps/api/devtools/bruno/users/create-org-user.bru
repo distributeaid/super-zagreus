@@ -1,0 +1,25 @@
+meta {
+  name: Create Org User
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/organisations/:orgId/users
+  body: json
+  auth: inherit
+}
+
+params:path {
+  orgId:
+}
+
+body:json {
+  {
+    "username": "ahassan",
+    "firstName": "Ahmed",
+    "lastName": "Hassan",
+    "email": "ahmed.hassan@example.org",
+    "role": "OrgMember"
+  }
+}

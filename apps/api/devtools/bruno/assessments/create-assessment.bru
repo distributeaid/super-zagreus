@@ -1,0 +1,23 @@
+meta {
+  name: Create Assessment
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/projects/:projectId/assessments
+  body: json
+  auth: inherit
+}
+
+params:path {
+  projectId:
+}
+
+body:json {
+  {
+    "createdBy": "00000000-0000-0000-0000-000000000001",
+    "notes": null,
+    "supersedesId": null
+  }
+}

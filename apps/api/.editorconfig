@@ -1,0 +1,52 @@
+root = true
+
+# ── Universal ──────────────────────────────────────────────────────────────────
+[*]
+indent_style             = space
+end_of_line              = lf
+charset                  = utf-8
+trim_trailing_whitespace = true
+insert_final_newline     = true
+
+# ── C# ────────────────────────────────────────────────────────────────────────
+[*.cs]
+indent_size = 4
+
+# File-scoped namespaces — namespace Foo; rather than namespace Foo { ... }
+csharp_style_namespace_declarations = file_scoped:warning
+
+# Always write braces when the body spans multiple lines.
+# Single-line  `if (x) return;`  is fine; the dangerous case is multi-line without braces.
+csharp_prefer_braces = when_multiline:warning
+
+# using directives go outside the namespace block
+csharp_using_directive_placement = outside_namespace:warning
+
+# Sort System.* usings before other usings
+dotnet_sort_system_directives_first = true
+
+# var — use it when the type is already obvious from the right-hand side (new Foo(), cast, etc.)
+# Use explicit types for everything else so readers don't have to guess.
+csharp_style_var_for_built_in_types    = false:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere             = false:suggestion
+
+# Prefer `x is null` over `x == null` — safer with operator overloading
+dotnet_style_prefer_is_null_check_over_reference_equality_method = true:warning
+
+# Always write the access modifier (public / private / etc.) — never rely on defaults
+dotnet_style_require_accessibility_modifiers = always:warning
+
+# Prefer null-coalescing: x ?? y  over  x != null ? x : y
+dotnet_style_coalesce_expression = true:suggestion
+
+# Prefer null-conditional: x?.Foo  over  x != null ? x.Foo : null
+dotnet_style_null_propagation = true:suggestion
+
+# ── JSON / YAML ───────────────────────────────────────────────────────────────
+[*.{json,yml,yaml}]
+indent_size = 2
+
+# ── Markdown ──────────────────────────────────────────────────────────────────
+[*.md]
+trim_trailing_whitespace = false

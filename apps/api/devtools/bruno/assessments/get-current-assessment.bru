@@ -1,0 +1,15 @@
+meta {
+  name: Get Current Assessment
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/projects/:projectId/assessments/current
+  body: none
+  auth: inherit
+}
+
+params:path {
+  projectId:
+}

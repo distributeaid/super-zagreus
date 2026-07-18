@@ -1,0 +1,24 @@
+meta {
+  name: Update User (DA-level)
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/api/users/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id:
+}
+
+body:json {
+  {
+    "firstName": null,
+    "lastName": null,
+    "email": null,
+    "role": null
+  }
+}

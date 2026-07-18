@@ -1,0 +1,15 @@
+meta {
+  name: Delete Assessment
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/api/assessments/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id:
+}
