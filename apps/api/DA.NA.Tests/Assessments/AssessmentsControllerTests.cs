@@ -8,9 +8,10 @@ using Xunit;
 namespace DA.NA.Tests.Assessments;
 
 /// <summary>
-/// Regression coverage for GET /api/projects/{projectId}/assessments/current.
+/// Regression coverage for GET /api/projects/{projectId}/assessments/current and
+/// GET /api/assessments/{id}.
 ///
-/// The endpoint used to return the tracked NeedsAssessment entity graph directly.
+/// The endpoints used to return the tracked NeedsAssessment entity graph directly.
 /// With .Include(a => a.Items), EF Core's relationship fixup sets each
 /// AssessmentItem.Assessment back-reference to the same tracked NeedsAssessment
 /// instance, forming a reference cycle. System.Text.Json has no ReferenceHandler
@@ -18,7 +19,8 @@ namespace DA.NA.Tests.Assessments;
 /// threw "A possible object cycle was detected", surfacing as an uncaught 500 — even
 /// though the query and status code logic were otherwise correct. This only reproduces
 /// when the assessment actually has items, which is why the "no submitted assessment"
-/// (404) path looked fine in the demo.
+/// (404) path looked fine in the demo. GetById now returns a projected DTO to avoid the
+/// same cycle, and its org-scoping / not-found behavior is also covered here.
 /// </summary>
 public class AssessmentsControllerTests : TestBase
 {
@@ -86,4 +88,75 @@ public class AssessmentsControllerTests : TestBase
     }
 
     private record CurrentAssessmentResponse(Guid Id, AssessmentStatus Status, DateTime? SubmittedAt);
+
+    [Fact]
+    public async Task GetById_returns_the_assessment_with_its_items()
+    {
+        var orgId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+        var assessmentId = Guid.NewGuid();
+        var itemTypeId = Guid.NewGuid();
+
+        await SeedAsync(db =>
+        {
+            db.Organisations.Add(new Organisation { Id = orgId, Name = "Aegean Hub", CreatedAt = DateTime.UtcNow });
+            db.Projects.Add(new Project { Id = projectId, OrgId = orgId, Name = "Main", Status = ProjectStatus.Active, CreatedAt = DateTime.UtcNow });
+            db.Units.Add(new Unit { Id = UnitIds.Item, Name = "item", Dimension = UnitDimension.Count, ToBaseFactor = 1m });
+            db.ItemTypes.Add(new ItemType { Id = itemTypeId, Category = "Food", Name = "Rice", DefaultUnitId = UnitIds.Item });
+            db.NeedsAssessments.Add(new NeedsAssessment
+            {
+                Id = assessmentId, ProjectId = projectId, CreatedBy = Guid.NewGuid(),
+                Status = AssessmentStatus.Draft, CreatedAt = DateTime.UtcNow,
+                Items = { new AssessmentItem { Id = Guid.NewGuid(), ItemTypeId = itemTypeId, UnitId = UnitIds.Item, Quantity = 10, CreatedAt = DateTime.UtcNow } }
+            });
+            return Task.CompletedTask;
+        });
+
+        var client = ClientFor(JwtHelper.ForOrgAdmin(orgId));
+        var res = await client.GetAsync($"/api/assessments/{assessmentId}");
+
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode); // 500 here would mean the serialization cycle regressed
+        var body = await res.Content.ReadFromJsonAsync<AssessmentByIdResponse>();
+        Assert.NotNull(body);
+        Assert.Equal("Draft", body!.Status);
+        var item = Assert.Single(body.Items);
+        Assert.Equal("Rice", item.ItemType.Name);
+        Assert.Equal("Food", item.ItemType.Category);
+        Assert.Equal("item", item.Unit.Name);
+        Assert.Equal(10, item.Quantity);
+    }
+
+    [Fact]
+    public async Task GetById_from_another_org_returns_404()
+    {
+        var orgId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+        var assessmentId = Guid.NewGuid();
+
+        await SeedAsync(db =>
+        {
+            db.Organisations.Add(new Organisation { Id = orgId, Name = "Org A", CreatedAt = DateTime.UtcNow });
+            db.Projects.Add(new Project { Id = projectId, OrgId = orgId, Name = "Main", Status = ProjectStatus.Active, CreatedAt = DateTime.UtcNow });
+            db.NeedsAssessments.Add(new NeedsAssessment { Id = assessmentId, ProjectId = projectId, CreatedBy = Guid.NewGuid(), Status = AssessmentStatus.Draft, CreatedAt = DateTime.UtcNow });
+            return Task.CompletedTask;
+        });
+
+        var client = ClientFor(JwtHelper.ForOrgAdmin(Guid.NewGuid())); // a different org
+        var res = await client.GetAsync($"/api/assessments/{assessmentId}");
+
+        Assert.Equal(HttpStatusCode.NotFound, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetById_unknown_id_returns_404()
+    {
+        var client = ClientFor(JwtHelper.ForOrgAdmin(Guid.NewGuid()));
+        var res = await client.GetAsync($"/api/assessments/{Guid.NewGuid()}");
+        Assert.Equal(HttpStatusCode.NotFound, res.StatusCode);
+    }
+
+    private record AssessmentByIdResponse(Guid Id, string Status, List<ItemResponse> Items);
+    private record ItemResponse(Guid Id, decimal Quantity, ItemTypeResponse ItemType, UnitResponse Unit);
+    private record ItemTypeResponse(string Name, string Category);
+    private record UnitResponse(string Name);
 }

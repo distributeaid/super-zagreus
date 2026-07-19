@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using DA.NA.Core.Data;
 using DA.NA.Core.Entities;
 using DA.NA.Tests.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace DA.NA.Tests.Assessments;
@@ -95,5 +97,33 @@ public class WorkingDraftTests : TestBase
         var res = await client.PostAsync($"/api/projects/{projectId}/assessments/working-draft", null);
 
         Assert.Equal(HttpStatusCode.NotFound, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_second_open_draft_for_the_same_project_violates_the_unique_index()
+    {
+        var (_, projectId, _, _) = await SeedCatalogAsync();
+
+        // First open draft — fine.
+        await SeedAsync(db =>
+        {
+            db.NeedsAssessments.Add(new NeedsAssessment
+            {
+                Id = Guid.NewGuid(), ProjectId = projectId, CreatedBy = Guid.NewGuid(),
+                Status = AssessmentStatus.Draft, CreatedAt = DateTime.UtcNow
+            });
+            return Task.CompletedTask;
+        });
+
+        // A second open draft for the same project must be rejected by the filtered unique index.
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.NeedsAssessments.Add(new NeedsAssessment
+        {
+            Id = Guid.NewGuid(), ProjectId = projectId, CreatedBy = Guid.NewGuid(),
+            Status = AssessmentStatus.Draft, CreatedAt = DateTime.UtcNow
+        });
+
+        await Assert.ThrowsAnyAsync<DbUpdateException>(() => db.SaveChangesAsync());
     }
 }
