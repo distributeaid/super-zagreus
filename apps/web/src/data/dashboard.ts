@@ -32,3 +32,12 @@ export async function loadDashboard(): Promise<Dashboard> {
   const current = await apiGet<CurrentAssessment>(`/api/projects/${project.id}/assessments/current`);
   return { orgName: me.orgName, project, lastConfirmedAt: current?.submittedAt ?? null };
 }
+
+/** Resolve the caller's single project (org's first project), or null if none. */
+export async function getCurrentProject(): Promise<{ id: string; name: string; region: string | null; orgName: string | null } | null> {
+  const me = await apiGet<{ orgId: string | null; orgName: string | null }>("/api/me");
+  if (!me?.orgId) return null;
+  const projects = await apiGet<{ id: string; name: string; region: string | null }[]>(`/api/organisations/${me.orgId}/projects`);
+  const project = projects?.[0];
+  return project ? { ...project, orgName: me.orgName } : null;
+}

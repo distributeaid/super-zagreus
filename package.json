@@ -8,5 +8,9 @@
   ],
   "engines": {
     "node": ">=20.0.0 <25.0.0"
+  },
+  "resolutions": {
+    "vite": "^6.4.3",
+    "postcss": "^8.5.10"
   }
 }
