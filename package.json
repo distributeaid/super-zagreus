@@ -8,5 +8,11 @@
   ],
   "engines": {
     "node": ">=20.0.0 <25.0.0"
+  },
+  "scripts": {
+    "test:scripts": "vitest run --config vitest.workspace-scripts.config.mjs"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8"
   }
 }
