@@ -180,8 +180,102 @@ public class AssessmentsControllerTests : TestBase
         Assert.Equal(HttpStatusCode.NotFound, res.StatusCode);
     }
 
+    // ── Item mutation + submit endpoints: they return the created/updated entity, which used
+    //    to serialize the AssessmentItem.Assessment back-reference into a cycle (500). These pin
+    //    that they now return a projected 2xx body — the seam the frontend-action unit tests
+    //    (which mock apiPost/apiPatch) never exercised, and which surfaced in the manual E2E. ──
+
+    // Seeds an org, project, unit, item type, and a Draft assessment; returns their ids.
+    private async Task<(Guid orgId, Guid projectId, Guid draftId, Guid itemTypeId)> SeedDraftAsync()
+    {
+        var orgId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+        var draftId = Guid.NewGuid();
+        var itemTypeId = Guid.NewGuid();
+        await SeedAsync(db =>
+        {
+            db.Organisations.Add(new Organisation { Id = orgId, Name = "Aegean Hub", CreatedAt = DateTime.UtcNow });
+            db.Projects.Add(new Project { Id = projectId, OrgId = orgId, Name = "Main", Status = ProjectStatus.Active, CreatedAt = DateTime.UtcNow });
+            db.Units.Add(new Unit { Id = UnitIds.Item, Name = "item", Dimension = UnitDimension.Count, ToBaseFactor = 1m });
+            db.ItemTypes.Add(new ItemType { Id = itemTypeId, Category = "Hygiene", Name = "Soap", DefaultUnitId = UnitIds.Item });
+            db.NeedsAssessments.Add(new NeedsAssessment { Id = draftId, ProjectId = projectId, CreatedBy = Guid.NewGuid(), Status = AssessmentStatus.Draft, CreatedAt = DateTime.UtcNow });
+            return Task.CompletedTask;
+        });
+        return (orgId, projectId, draftId, itemTypeId);
+    }
+
+    [Fact]
+    public async Task AddItem_returns_the_created_item_without_a_serialization_cycle()
+    {
+        var (orgId, _, draftId, itemTypeId) = await SeedDraftAsync();
+        var client = ClientFor(JwtHelper.ForOrgAdmin(orgId));
+
+        var res = await client.PostAsJsonAsync($"/api/assessments/{draftId}/items",
+            new { itemTypeId, unitId = UnitIds.Item, quantity = 3 });
+
+        Assert.Equal(HttpStatusCode.Created, res.StatusCode); // 500 here means the cycle regressed
+        var item = await res.Content.ReadFromJsonAsync<ItemResponse>();
+        Assert.Equal("Soap", item!.ItemType.Name);
+        Assert.Equal("item", item.Unit.Name);
+        Assert.Equal(3, item.Quantity);
+    }
+
+    [Fact]
+    public async Task UpdateItem_returns_the_updated_item_without_a_cycle()
+    {
+        var (orgId, _, draftId, itemTypeId) = await SeedDraftAsync();
+        var itemId = Guid.NewGuid();
+        await SeedAsync(db =>
+        {
+            db.AssessmentItems.Add(new AssessmentItem { Id = itemId, AssessmentId = draftId, ItemTypeId = itemTypeId, UnitId = UnitIds.Item, Quantity = 1, CreatedAt = DateTime.UtcNow });
+            return Task.CompletedTask;
+        });
+        var client = ClientFor(JwtHelper.ForOrgAdmin(orgId));
+
+        var res = await client.PatchAsJsonAsync($"/api/assessments/{draftId}/items/{itemId}", new { quantity = 9 });
+
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode); // 500 here means the cycle regressed
+        var item = await res.Content.ReadFromJsonAsync<ItemResponse>();
+        Assert.Equal(9, item!.Quantity);
+    }
+
+    [Fact]
+    public async Task UpdateNotes_returns_the_assessment_without_a_cycle()
+    {
+        var (orgId, _, draftId, _) = await SeedDraftAsync();
+        var client = ClientFor(JwtHelper.ForOrgAdmin(orgId));
+
+        var res = await client.PatchAsJsonAsync($"/api/assessments/{draftId}", new { notes = "winter priorities" });
+
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode); // 500 here means the cycle regressed
+        var body = await res.Content.ReadFromJsonAsync<NotesResponse>();
+        Assert.Equal("winter priorities", body!.Notes);
+    }
+
+    private record NotesResponse(Guid Id, string Status, string? Notes);
+
+    [Fact]
+    public async Task Submit_confirms_the_draft_without_a_cycle()
+    {
+        var (orgId, _, draftId, itemTypeId) = await SeedDraftAsync();
+        await SeedAsync(db =>
+        {
+            db.AssessmentItems.Add(new AssessmentItem { Id = Guid.NewGuid(), AssessmentId = draftId, ItemTypeId = itemTypeId, UnitId = UnitIds.Item, Quantity = 2, CreatedAt = DateTime.UtcNow });
+            return Task.CompletedTask;
+        });
+        var client = ClientFor(JwtHelper.ForOrgAdmin(orgId));
+
+        var res = await client.PostAsync($"/api/assessments/{draftId}/submit", null);
+
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode); // 500 here means the cycle regressed
+        var body = await res.Content.ReadFromJsonAsync<SubmitResponse>();
+        Assert.Equal("Submitted", body!.Status);
+        Assert.NotNull(body.SubmittedAt);
+    }
+
     private record AssessmentByIdResponse(Guid Id, string Status, List<ItemResponse> Items);
     private record ItemResponse(Guid Id, decimal Quantity, ItemTypeResponse ItemType, UnitResponse Unit);
     private record ItemTypeResponse(string Name, string Category);
     private record UnitResponse(string Name);
+    private record SubmitResponse(Guid Id, string Status, DateTime? SubmittedAt);
 }

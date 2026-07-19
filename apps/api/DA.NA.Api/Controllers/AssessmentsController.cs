@@ -97,6 +97,16 @@ public class AssessmentsController : ControllerBase
         })
     };
 
+    // Single item projected (no Assessment back-reference) — avoids the Items[].Assessment
+    // serialization cycle when the item mutation endpoints return the created/updated item.
+    // Requires ItemType and Unit to be loaded on the item.
+    private static object ItemToDto(AssessmentItem i) => new
+    {
+        i.Id, i.ItemTypeId, i.Quantity, i.UnitId,
+        ItemType = new { i.ItemType.Name, i.ItemType.Category },
+        Unit = new { i.Unit.Name }
+    };
+
     /// <summary>Get a single assessment by ID, including all items.</summary>
     [HttpGet("api/assessments/{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
@@ -215,7 +225,8 @@ public class AssessmentsController : ControllerBase
         };
         _db.NeedsAssessments.Add(assessment);
         await _db.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetById), new { id = assessment.Id }, assessment);
+        // Projected for consistency: never return tracked entities (cycle-prone once navs load).
+        return CreatedAtAction(nameof(GetById), new { id = assessment.Id }, ToDto(assessment));
     }
 
     /// <summary>
@@ -244,7 +255,8 @@ public class AssessmentsController : ControllerBase
         assessment.Status = AssessmentStatus.Submitted;
         assessment.SubmittedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
-        return Ok(assessment);
+        // Minimal, non-cyclic confirmation (the tracked entity graph would serialize into a cycle).
+        return Ok(new { assessment.Id, Status = assessment.Status.ToString(), assessment.SubmittedAt });
     }
 
     /// <summary>Update the notes on a draft assessment.</summary>
@@ -266,7 +278,9 @@ public class AssessmentsController : ControllerBase
 
         if (req.Notes is not null) assessment.Notes = req.Notes;
         await _db.SaveChangesAsync();
-        return Ok(assessment);
+        // Minimal, non-cyclic response (the tracked entity graph would serialize into a cycle
+        // via the loaded Project's Assessments back-reference).
+        return Ok(new { assessment.Id, Status = assessment.Status.ToString(), assessment.Notes });
     }
 
     /// <summary>Delete a draft assessment. Submitted assessments cannot be deleted.</summary>
@@ -329,10 +343,10 @@ public class AssessmentsController : ControllerBase
         _db.AssessmentItems.Add(item);
         await _db.SaveChangesAsync();
 
-        // Return with navigation properties loaded
+        // Return with navigation properties loaded, projected to avoid the serialization cycle.
         await _db.Entry(item).Reference(i => i.ItemType).LoadAsync();
         await _db.Entry(item).Reference(i => i.Unit).LoadAsync();
-        return CreatedAtAction(nameof(GetById), new { id }, item);
+        return CreatedAtAction(nameof(GetById), new { id }, ItemToDto(item));
     }
 
     /// <summary>Update an item's quantity, unit, or notes on a draft assessment.</summary>
@@ -361,7 +375,10 @@ public class AssessmentsController : ControllerBase
         if (req.Notes is not null) item.Notes = req.Notes;
 
         await _db.SaveChangesAsync();
-        return Ok(item);
+
+        await _db.Entry(item).Reference(i => i.ItemType).LoadAsync();
+        await _db.Entry(item).Reference(i => i.Unit).LoadAsync();
+        return Ok(ItemToDto(item));
     }
 
     /// <summary>Remove an item from a draft assessment.</summary>

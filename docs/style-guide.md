@@ -26,6 +26,22 @@ new code consistent with them.
   values the (hoisted) `vi.mock` factories need, so the real `import` lines stay at the
   top and Vitest hoists the mock setup above them.
 
+## Backend (ASP.NET Core)
+
+- **Never return tracked EF entities from controller actions.** Always project to an
+  anonymous object or DTO (`.Select(...)`, or a shared projection helper like
+  `AssessmentsController.ToDto`). Tracked entity graphs serialize their EF-fixup
+  back-references into cycles (`Items[].Assessment.Project.Assessments…`) and throw a 500 —
+  after the DB write has already succeeded, which makes the failure look like a client bug.
+
+- **Every endpoint the frontend calls gets at least one test through the real HTTP
+  pipeline** (the `TestBase`/`ApiFactory` integration setup) asserting the status code AND
+  deserializing the response body. Unit tests that mock the HTTP layer verify what we
+  *send*, not what comes *back* — response-serialization bugs are invisible to them. For
+  multi-step flows, prefer a lifecycle smoke test (see
+  `DA.NA.Tests/Assessments/NeedsLifecycleSmokeTests.cs`) that drives the whole advertised
+  sequence and asserts every response.
+
 ## Tests
 
 - **Framework: Vitest** + React Testing Library (config in `apps/web/vitest.config.mts`).
