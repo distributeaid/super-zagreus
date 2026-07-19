@@ -35,12 +35,18 @@ sees" and "what the gate enforces" are identical.
 
 **Patch coverage + total floor**, both enforced:
 
-- **Patch gate:** changed lines must clear a threshold (`patchMin`, default **80%**).
-  This is the primary, least-brittle signal — it asks "is the new code tested?"
+- **Patch gate:** changed lines must clear a threshold (`patchMin`, default **99%**).
+  This is the primary signal — it asks "is the new code tested?" The default is set
+  deliberately high: this is a small, test-disciplined codebase where new code is
+  expected to ship with tests, so the patch gate is treated as a near-total
+  requirement rather than a lenient floor. It is adjustable in one place
+  (`coverage.config.json`) if a specific PR needs relief.
 - **Total floor:** each suite's overall line coverage must not drop below a
   configured floor (`webTotalMin`, `apiTotalMin`). Floors are explicit, documented
-  numbers seeded from the **measured current baseline** (a few points of slack),
-  not a moving target — this keeps the floor from blocking unrelated PRs.
+  numbers seeded from the **measured current baseline**, set as high as the baseline
+  allows (rounded down only a couple points for slack), not a moving target — this
+  keeps the floor from blocking unrelated PRs while still ratcheting overall coverage
+  upward as the strict patch gate lands well-tested new code.
 
 All three thresholds live in a single root `coverage.config.json` — one place humans
 and agents read the policy.
@@ -117,7 +123,7 @@ negative test below).
 - **Total floor:** `scripts/coverage-floor.mjs` reads each suite's line-coverage %
   (from lcov / json-summary) and exits non-zero if a suite is below its floor.
 - **Config:** root `coverage.config.json`:
-  `{ "patchMin": 80, "webTotalMin": <baseline>, "apiTotalMin": <baseline> }`.
+  `{ "patchMin": 99, "webTotalMin": <baseline>, "apiTotalMin": <baseline> }`.
 
 ### Agent-friendly output
 
@@ -130,8 +136,9 @@ this structured result — identical to what the CI gate decided on.
 During implementation (measured, not guessed):
 
 1. Run `yarn coverage` on the branch to get current web + api line-coverage %.
-2. Set `webTotalMin` / `apiTotalMin` a few points below the measured numbers.
-3. `patchMin` starts at 80%, adjustable in one place.
+2. Set `webTotalMin` / `apiTotalMin` a couple points below the measured numbers
+   (aim high — as close to the baseline as the slack allows).
+3. `patchMin` starts at 99%, adjustable in one place.
 
 ## Verification
 
