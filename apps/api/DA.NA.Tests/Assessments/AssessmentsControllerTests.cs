@@ -90,6 +90,31 @@ public class AssessmentsControllerTests : TestBase
     private record CurrentAssessmentResponse(Guid Id, AssessmentStatus Status, DateTime? SubmittedAt);
 
     [Fact]
+    public async Task GetByProject_returns_status_as_a_string()
+    {
+        var orgId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+
+        await SeedAsync(db =>
+        {
+            db.Organisations.Add(new Organisation { Id = orgId, Name = "Aegean Hub", CreatedAt = DateTime.UtcNow });
+            db.Projects.Add(new Project { Id = projectId, OrgId = orgId, Name = "Main", Status = ProjectStatus.Active, CreatedAt = DateTime.UtcNow });
+            db.NeedsAssessments.Add(new NeedsAssessment { Id = Guid.NewGuid(), ProjectId = projectId, CreatedBy = Guid.NewGuid(), Status = AssessmentStatus.Draft, CreatedAt = DateTime.UtcNow });
+            return Task.CompletedTask;
+        });
+
+        var client = ClientFor(JwtHelper.ForOrgAdmin(orgId));
+        var res = await client.GetAsync($"/api/projects/{projectId}/assessments");
+
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+        var list = await res.Content.ReadFromJsonAsync<List<AssessmentListRow>>();
+        var row = Assert.Single(list!);
+        Assert.Equal("Draft", row.Status); // must be the STRING "Draft", not 0 — selectNeedsMode depends on it
+    }
+
+    private record AssessmentListRow(Guid Id, string Status);
+
+    [Fact]
     public async Task GetById_returns_the_assessment_with_its_items()
     {
         var orgId = Guid.NewGuid();

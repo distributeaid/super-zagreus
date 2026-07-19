@@ -15,7 +15,7 @@ const ITEMS = [{ id: "i1", itemTypeId: "soap", name: "Soap", category: "Hygiene"
 
 describe("NeedsEditor", () => {
   beforeEach(() => {
-    for (const fn of Object.values(actions)) fn.mockReset();
+    for (const fn of Object.values(actions)) fn.mockReset().mockResolvedValue(undefined);
   });
 
   it("renders needs grouped by category", () => {
@@ -33,5 +33,12 @@ describe("NeedsEditor", () => {
   it("disables confirm when there are no needs", () => {
     render(<NeedsEditor draftId="d1" items={[]} catalog={CATALOG} />);
     expect(screen.getByRole("button", { name: /confirm current needs/i })).toBeDisabled();
+  });
+
+  it("shows an inline error when a mutation fails", async () => {
+    actions.removeNeed.mockRejectedValueOnce(new Error("boom"));
+    render(<NeedsEditor draftId="d1" items={ITEMS} catalog={CATALOG} />);
+    await userEvent.click(screen.getByRole("button", { name: /remove/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/couldn't save/i);
   });
 });

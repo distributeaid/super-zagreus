@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { apiGet } from "@/data/apiClient";
 import { getCurrentProject } from "@/data/dashboard";
 import { flattenCatalog } from "@/data/catalog";

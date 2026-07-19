@@ -38,7 +38,7 @@ public class AssessmentsController : ControllerBase
             .OrderByDescending(a => a.SubmittedAt ?? a.CreatedAt)
             .Select(a => new
             {
-                a.Id, a.Status, a.Notes,
+                a.Id, Status = a.Status.ToString(), a.Notes,
                 a.CreatedAt, a.SubmittedAt, a.SupersedesId,
                 ItemCount = a.Items.Count
             })

@@ -24,7 +24,7 @@ export function NeedRow({
           defaultValue={need.quantity}
           onChange={(e) => {
             const value = Number(e.target.value);
-            if (!Number.isNaN(value)) onQuantityChange(value);
+            if (!Number.isNaN(value) && value > 0) onQuantityChange(value);
           }}
           className="w-20 rounded border border-da-teal px-da-sm py-da-sm"
         />
