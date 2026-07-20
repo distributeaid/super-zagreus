@@ -443,6 +443,10 @@ Create `apps/api/coverlet.runsettings`:
         <Configuration>
           <Format>lcov</Format>
           <ExcludeByAttribute>GeneratedCodeAttribute</ExcludeByAttribute>
+          <!-- Auto-generated EF Core migrations (incl. *.Designer.cs and the
+               ModelSnapshot) are scaffolded, not hand-written — exclude them so
+               the floor and the 99% patch gate measure real code only. -->
+          <ExcludeByFile>**/Migrations/*.cs</ExcludeByFile>
         </Configuration>
       </DataCollector>
     </DataCollectors>
