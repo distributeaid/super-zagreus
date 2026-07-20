@@ -105,7 +105,7 @@ RUN mkdir -p /home/vscode/.claude /home/vscode/.microsoft/usersecrets \
   && chown -R vscode:vscode /home/vscode/.claude /home/vscode/.microsoft
 
 USER vscode
-RUN dotnet tool install --global dotnet-ef
+RUN dotnet tool install --global dotnet-ef --version 8.*
 ENV PATH=$PATH:/home/vscode/.dotnet/tools
 ```
 
