@@ -127,10 +127,28 @@ describe("normalizeLcov", () => {
     expect(out).toContain("SF:apps/web/src/data/dashboard.ts");
   });
 
-  it("leaves non-SF lines untouched", () => {
+  it("leaves non-SF, non-function lines untouched", () => {
     const input = "TN:\nDA:1,1\nLF:1\nLH:1\nend_of_record\n";
     const out = normalizeLcov(input, { repoRoot, base: "/repo/apps/web" });
     expect(out).toBe(input);
+  });
+
+  it("strips FN/FNDA records whose names may contain commas", () => {
+    const input = [
+      "SF:/repo/apps/api/X.cs",
+      "FN:316,System.Void X::.ctor(System.Guid,System.Decimal)",
+      "FNDA:1,System.Void X::.ctor(System.Guid,System.Decimal)",
+      "DA:316,1",
+      "LF:1",
+      "LH:1",
+      "end_of_record",
+      "",
+    ].join("\n");
+    const out = normalizeLcov(input, { repoRoot, base: "/repo/apps/api" });
+    expect(out).not.toContain("FN:");
+    expect(out).not.toContain("FNDA:");
+    expect(out).toContain("DA:316,1");
+    expect(out).toContain("SF:apps/api/X.cs");
   });
 });
 ```
@@ -159,12 +177,20 @@ import { dirname } from "node:path";
  */
 export function normalizeLcov(content, { repoRoot, base }) {
   const toPosix = (p) => p.split(path.sep).join("/").split("\\").join("/");
-  return content.replace(/^SF:(.*)$/gm, (_, raw) => {
-    const sf = raw.trim();
-    const abs = path.isAbsolute(sf) ? sf : path.resolve(base, sf);
-    const rel = path.relative(repoRoot, abs);
-    return `SF:${toPosix(rel)}`;
-  });
+  return content
+    .split(/\r?\n/)
+    // Drop function-record lines. Their name field can contain commas (e.g.
+    // coverlet emits C# method signatures like `.ctor(System.Guid,System.Decimal)`),
+    // which breaks diff-cover's comma-split lcov parser. diff-cover computes patch
+    // coverage from line records (DA/LF/LH), so FN/FNDA carry no signal we need.
+    .filter((line) => !line.startsWith("FN:") && !line.startsWith("FNDA:"))
+    .map((line) => {
+      if (!line.startsWith("SF:")) return line;
+      const sf = line.slice(3).trim();
+      const abs = path.isAbsolute(sf) ? sf : path.resolve(base, sf);
+      return `SF:${toPosix(path.relative(repoRoot, abs))}`;
+    })
+    .join("\n");
 }
 
 function main() {
@@ -189,7 +215,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 - [ ] **Step 5: Run test to verify it passes**
 
 Run: `yarn test:scripts`
-Expected: PASS — 3 tests. (`toPosix` in the implementation still normalizes any stray backslashes defensively; CI runs on `ubuntu-latest`, so Windows paths are not a supported input.)
+Expected: PASS — 4 tests. (`toPosix` in the implementation still normalizes any stray backslashes defensively; CI runs on `ubuntu-latest`, so Windows paths are not a supported input.)
 
 - [ ] **Step 6: Commit**
 
@@ -605,7 +631,7 @@ Create `scripts/coverage-diff.mjs`:
 
 ```javascript
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { lineCoveragePct } from "./coverage-floor.mjs";
 
 const cfg = JSON.parse(readFileSync("coverage.config.json", "utf8"));
@@ -623,13 +649,22 @@ try {
       webLcov, apiLcov,
       "--compare-branch", compareBranch,
       "--fail-under", String(cfg.patchMin),
-      "--json-report", patchJson,
+      "--format", `json:${patchJson}`,
       "--quiet",
     ],
     { stdio: "inherit" },
   );
 } catch {
   patchFailed = true; // non-zero exit == below --fail-under; report still written
+}
+// diff-cover writes the JSON report even when it fails --fail-under. A MISSING
+// report instead means diff-cover crashed (e.g. an unparseable lcov) — surface
+// that clearly rather than throwing a raw ENOENT.
+if (!existsSync(patchJson)) {
+  console.error(
+    `coverage-diff: diff-cover produced no ${patchJson} — it likely failed to parse a coverage report. Aborting.`,
+  );
+  process.exit(2);
 }
 const patchReport = JSON.parse(readFileSync(patchJson, "utf8"));
 const patchPct = patchReport.total_percent_covered ?? 100;
@@ -776,7 +811,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pipx install diff-cover
+      # Install into the setup-python env (on PATH), pinned for reproducibility —
+      # avoids pipx's ~/.local/bin not being on PATH mid-job.
+      - run: python -m pip install "diff-cover==10.3.0"
       - uses: actions/download-artifact@v4
         with:
           name: web-lcov
