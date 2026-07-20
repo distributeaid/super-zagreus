@@ -32,6 +32,7 @@ Approach: Microsoft's .NET 8 devcontainer image as the base (the API toolchain i
   docker-compose.yml    # services: dev (toolchain) + db (postgres:16)
   Dockerfile            # dev image, based on mcr.microsoft.com/devcontainers/dotnet:8.0
   init-firewall.sh      # egress allowlist, adapted from anthropic/claude-code reference
+  smoke-test.sh         # automated in-container verification suite (see section 6)
 docs/
   dev-container.md      # first-run and daily-use guide
 ```
@@ -85,15 +86,35 @@ Adding a domain later = one line in the script's domain list + container restart
 
 ## 5. Documentation
 
-- New `docs/dev-container.md`: prerequisites (Docker Desktop, VS Code + Dev Containers extension), first-run steps (reopen in container → `claude` login → user-secrets → EF migrations → provision user), daily use (`claude --dangerously-skip-permissions`, run commands for API/web), firewall explanation, how to extend the allowlist, and troubleshooting (firewall self-test failure, stale DNS → restart).
+- New `docs/dev-container.md`: prerequisites (Docker Desktop, VS Code + Dev Containers extension), first-run steps (reopen in container → `claude` login → user-secrets → EF migrations → provision user), daily use (`claude --dangerously-skip-permissions`, run commands for API/web), firewall explanation, how to extend the allowlist, the smoke-test script (when it runs, how to run it manually), and troubleshooting (run `smoke-test.sh` first; firewall self-test failure, stale DNS → restart).
 - README gets a one-line pointer to `docs/dev-container.md` in the quick-start section.
 
-## 6. Verification / acceptance
+## 6. Verification & automated smoke tests
 
-From a fresh "Reopen in Container" build:
+Repeatable checks are automated in a checked-in script, `.devcontainer/smoke-test.sh`, so the container can be re-verified cheaply after image rebuilds, base-image bumps, allowlist edits, or toolchain upgrades — the recurring maintenance events for this setup.
 
-1. Firewall: `curl -m 5 https://example.com` fails; `curl -m 5 https://api.anthropic.com` succeeds (self-test in `postStartCommand` already asserts this — container start would fail loudly otherwise).
-2. API: `dotnet build` and `dotnet test` pass; `dotnet ef database update` (or the documented migration step) works against `db`; `dotnet run` serves on 54764.
-3. Web: `yarn install` and workspace tests pass; `yarn workspace @zagreus/web dev` serves on 3000, reachable from the host browser.
-4. Claude: `claude --dangerously-skip-permissions` starts after the one-time login.
-5. Host workflow regression: nothing outside `.devcontainer/`, `docs/`, and the README pointer changes; host quick start behaves as before.
+### `smoke-test.sh` (automated, run in-container)
+
+Runs each check, prints pass/fail per check, exits nonzero if any fail:
+
+1. **Toolchain present:** `dotnet --version` reports 8.x, `node --version` in the supported range, `yarn --version` is 4.x, `claude --version` succeeds, `dotnet-ef` is on PATH.
+2. **Firewall enforcing:** `curl -m 5 https://example.com` fails; each critical allowlisted service (`api.anthropic.com`, `registry.npmjs.org`, `api.nuget.org`, `github.com`) is reachable. This extends the start-time self-test to the full allowlist, so a domain silently dropping out of the ipset (e.g. after an upstream script update) is caught.
+3. **Database reachable:** TCP connect to `db:5432` and a `SELECT 1` as `da_user` succeed.
+4. **API builds and tests pass:** `dotnet build` and `dotnet test` on the solution.
+5. **Web installs and tests pass:** `yarn install --immutable` and the web workspace's test command.
+
+The script needs no secrets and no interactive login, so any session (including Claude in auto mode) can run it.
+
+**When it runs:**
+- Automatically once per container creation: `postCreateCommand` runs it after the firewall is up, so a broken rebuild is caught immediately rather than mid-task.
+- On demand any time (`bash .devcontainer/smoke-test.sh`), documented in `docs/dev-container.md` as the first debugging step and the required check after editing the firewall allowlist or Dockerfile.
+
+The firewall's own self-test (section 3) additionally runs on every container start via `postStartCommand`.
+
+### Manual, one-time-per-machine checks
+
+Not automatable (they need human login or a host browser), so they stay a short documented checklist in `docs/dev-container.md`:
+
+1. Claude: `claude --dangerously-skip-permissions` starts after the one-time login.
+2. End-to-end sign-in: `dotnet run` + `yarn dev`, then Google/Microsoft sign-in from the host browser at `http://localhost:3000`.
+3. Host workflow regression: nothing outside `.devcontainer/`, `docs/`, and the README pointer changes; host quick start behaves as before (verified once at implementation review).
