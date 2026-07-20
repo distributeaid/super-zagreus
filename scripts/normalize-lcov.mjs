@@ -1,6 +1,5 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
-import { dirname } from "node:path";
 
 /**
  * Rewrite every `SF:` source path in an lcov report to be repo-root-relative
@@ -37,7 +36,7 @@ function main() {
   const repoRoot = process.cwd();
   const base = path.resolve(repoRoot, baseArg);
   const out = normalizeLcov(readFileSync(input, "utf8"), { repoRoot, base });
-  mkdirSync(dirname(output), { recursive: true });
+  mkdirSync(path.dirname(output), { recursive: true });
   writeFileSync(output, out);
 }
 
