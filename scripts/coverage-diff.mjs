@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { lineCoveragePct } from "./coverage-floor.mjs";
 
 const cfg = JSON.parse(readFileSync("coverage.config.json", "utf8"));
@@ -17,13 +17,22 @@ try {
       webLcov, apiLcov,
       "--compare-branch", compareBranch,
       "--fail-under", String(cfg.patchMin),
-      "--json-report", patchJson,
+      "--format", `json:${patchJson}`,
       "--quiet",
     ],
     { stdio: "inherit" },
   );
 } catch {
   patchFailed = true; // non-zero exit == below --fail-under; report still written
+}
+// diff-cover writes the JSON report even when it fails --fail-under. A MISSING
+// report instead means diff-cover crashed (e.g. an unparseable lcov) — surface
+// that clearly rather than throwing a raw ENOENT.
+if (!existsSync(patchJson)) {
+  console.error(
+    `coverage-diff: diff-cover produced no ${patchJson} — it likely failed to parse a coverage report. Aborting.`,
+  );
+  process.exit(2);
 }
 const patchReport = JSON.parse(readFileSync(patchJson, "utf8"));
 const patchPct = patchReport.total_percent_covered ?? 100;
