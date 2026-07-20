@@ -12,12 +12,20 @@ import { dirname } from "node:path";
  */
 export function normalizeLcov(content, { repoRoot, base }) {
   const toPosix = (p) => p.split(path.sep).join("/").split("\\").join("/");
-  return content.replace(/^SF:(.*)$/gm, (_, raw) => {
-    const sf = raw.trim();
-    const abs = path.isAbsolute(sf) ? sf : path.resolve(base, sf);
-    const rel = path.relative(repoRoot, abs);
-    return `SF:${toPosix(rel)}`;
-  });
+  return content
+    .split(/\r?\n/)
+    // Drop function-record lines. Their name field can contain commas (coverlet
+    // emits C# method signatures like `.ctor(System.Guid,System.Decimal)`), which
+    // breaks diff-cover's comma-split lcov parser. diff-cover computes patch
+    // coverage from line records (DA/LF/LH), so FN/FNDA carry no signal we need.
+    .filter((line) => !line.startsWith("FN:") && !line.startsWith("FNDA:"))
+    .map((line) => {
+      if (!line.startsWith("SF:")) return line;
+      const sf = line.slice(3).trim();
+      const abs = path.isAbsolute(sf) ? sf : path.resolve(base, sf);
+      return `SF:${toPosix(path.relative(repoRoot, abs))}`;
+    })
+    .join("\n");
 }
 
 function main() {
