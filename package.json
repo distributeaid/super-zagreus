@@ -13,7 +13,8 @@
     "test:scripts": "vitest run --config vitest.workspace-scripts.config.mjs",
     "coverage:web": "yarn workspace @zagreus/web test:coverage && node scripts/normalize-lcov.mjs apps/web/coverage/lcov.info apps/web/coverage/lcov.info --base apps/web",
     "coverage:api": "node scripts/coverage-api.mjs",
-    "coverage": "yarn coverage:web && yarn coverage:api"
+    "coverage": "yarn coverage:web && yarn coverage:api",
+    "coverage:diff": "node scripts/coverage-diff.mjs"
   },
   "devDependencies": {
     "vitest": "^2.1.8"
