@@ -1,0 +1,23 @@
+{
+  "name": "Zagreus Sandbox",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "dev",
+  "workspaceFolder": "/workspaces/zagreus",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" },
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
+  },
+  "forwardPorts": [3000, 54764],
+  "postCreateCommand": "corepack enable",
+  "remoteUser": "vscode",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "ms-dotnettools.csdevkit",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}
