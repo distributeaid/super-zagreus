@@ -14,15 +14,29 @@ iptables -t mangle -F
 iptables -t mangle -X
 ipset destroy allowed-domains 2>/dev/null || true
 
-# Reset default policies to ACCEPT so the script is safely re-runnable.
-# `iptables -F` clears rules but NOT chain policies: without this reset,
-# a second invocation (this script also runs on every postStartCommand)
-# inherits the DROP policy set by the previous run below, and has no way
-# to reach the network to re-fetch the GitHub IP ranges / re-resolve the
-# allowed domains before the allowlist rule exists again.
-iptables -P INPUT ACCEPT
-iptables -P FORWARD ACCEPT
-iptables -P OUTPUT ACCEPT
+# Fail closed from the very first instant: default-DROP before anything is
+# (re)built. `iptables -F` clears rules but NOT chain policies, and this
+# script re-runs on every container start (postStartCommand), so at no
+# point may the policies pass through ACCEPT -- a concurrently running
+# process could exfiltrate during such a window. Re-runnability from an
+# enforced state is provided by the narrow ZAGREUS-BOOTSTRAP rules below.
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT DROP
+
+# IPv6: the compose network is IPv4-only, so no v6 allowlist is needed --
+# lock IPv6 egress down entirely (default ip6tables policy is ACCEPT,
+# which would otherwise leave an untouched escape hatch): default-DROP
+# with only loopback and already-established traffic permitted.
+ip6tables -F
+ip6tables -X
+ip6tables -P INPUT DROP
+ip6tables -P FORWARD DROP
+ip6tables -P OUTPUT DROP
+ip6tables -A INPUT -i lo -j ACCEPT
+ip6tables -A OUTPUT -o lo -j ACCEPT
+ip6tables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+ip6tables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 
 # 2. Selectively restore ONLY internal Docker DNS resolution
 if [ -n "$DOCKER_DNS_RULES" ]; then
@@ -33,6 +47,36 @@ if [ -n "$DOCKER_DNS_RULES" ]; then
 else
     echo "No Docker DNS rules to restore"
 fi
+
+# Temporary fail-closed bootstrap: rebuilding the allowlist below needs
+# exactly two things -- DNS, and HTTPS to api.github.com (for /meta).
+# Grant only that, in dedicated chains that are flushed and removed again
+# before the final REJECT tail is installed, so the final ruleset contains
+# only intended rules and arbitrary egress is never possible mid-run.
+iptables -N ZAGREUS-BOOTSTRAP-IN
+iptables -N ZAGREUS-BOOTSTRAP-OUT
+iptables -I INPUT 1 -j ZAGREUS-BOOTSTRAP-IN
+iptables -I OUTPUT 1 -j ZAGREUS-BOOTSTRAP-OUT
+iptables -A ZAGREUS-BOOTSTRAP-IN -i lo -j ACCEPT
+iptables -A ZAGREUS-BOOTSTRAP-IN -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A ZAGREUS-BOOTSTRAP-OUT -o lo -j ACCEPT
+iptables -A ZAGREUS-BOOTSTRAP-OUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A ZAGREUS-BOOTSTRAP-OUT -p udp --dport 53 -j ACCEPT
+
+echo "Resolving api.github.com for bootstrap..."
+bootstrap_ips=$(dig +noall +answer A api.github.com | awk '$4 == "A" {print $5}')
+if [ -z "$bootstrap_ips" ]; then
+    echo "ERROR: Failed to resolve api.github.com for bootstrap"
+    exit 1
+fi
+while read -r ip; do
+    if [[ ! "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+        echo "ERROR: Invalid IP from DNS for api.github.com: $ip"
+        exit 1
+    fi
+    echo "Adding bootstrap rule for api.github.com $ip"
+    iptables -A ZAGREUS-BOOTSTRAP-OUT -d "$ip/32" -p tcp --dport 443 -j ACCEPT
+done < <(echo "$bootstrap_ips")
 
 # First allow DNS and localhost before any restrictions
 # Allow outbound DNS
@@ -121,7 +165,8 @@ for subnet in $(ip -o -f inet route show proto kernel | awk '{print $1}'); do
     iptables -A OUTPUT -d "$subnet" -j ACCEPT
 done
 
-# Set default policies to DROP first
+# Default policies are already DROP (set fail-closed at the top of this
+# script, before the allowlist build); reassert for clarity.
 iptables -P INPUT DROP
 iptables -P FORWARD DROP
 iptables -P OUTPUT DROP
@@ -132,6 +177,17 @@ iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 
 # Then allow only specific outbound traffic to allowed domains
 iptables -A OUTPUT -m set --match-set allowed-domains dst -j ACCEPT
+
+# Tear down the temporary bootstrap chains: the final rules above now
+# cover everything legitimate, and removing these before the REJECT tail
+# keeps the finished ruleset limited to intended rules only. In-flight
+# connections opened during bootstrap survive via the ESTABLISHED rule.
+iptables -D INPUT -j ZAGREUS-BOOTSTRAP-IN
+iptables -D OUTPUT -j ZAGREUS-BOOTSTRAP-OUT
+iptables -F ZAGREUS-BOOTSTRAP-IN
+iptables -F ZAGREUS-BOOTSTRAP-OUT
+iptables -X ZAGREUS-BOOTSTRAP-IN
+iptables -X ZAGREUS-BOOTSTRAP-OUT
 
 # Explicitly REJECT all other outbound traffic for immediate feedback
 iptables -A OUTPUT -j REJECT --reject-with icmp-admin-prohibited
