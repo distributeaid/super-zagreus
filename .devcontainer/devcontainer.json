@@ -8,7 +8,9 @@
     "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
   },
   "forwardPorts": [3000, 54764],
-  "postCreateCommand": "corepack enable",
+  "postCreateCommand": "corepack enable && sudo /usr/local/bin/zagreus-init-firewall.sh",
+  "postStartCommand": "sudo /usr/local/bin/zagreus-init-firewall.sh",
+  "waitFor": "postStartCommand",
   "remoteUser": "vscode",
   "customizations": {
     "vscode": {
