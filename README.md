@@ -50,6 +50,7 @@ docs/
 
 Code and test conventions (docstrings, imports, test structure) live in
 [docs/style-guide.md](docs/style-guide.md).
+CI and coverage gates are documented in [docs/ci-and-coverage.md](docs/ci-and-coverage.md).
 
 ## Tooling
 
