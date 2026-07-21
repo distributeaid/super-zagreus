@@ -32,6 +32,11 @@ fi
 for host in api.anthropic.com registry.npmjs.org api.nuget.org api.github.com; do
   check "allowlisted: $host" curl -m 5 -sI "https://$host"
 done
+if sudo -n iptables -L >/dev/null 2>&1; then
+  fail "sudo lockdown (vscode must NOT run arbitrary sudo commands)"
+else
+  pass "sudo lockdown (arbitrary sudo denied)"
+fi
 
 echo "== Database =="
 check "postgres db:5432 (SELECT 1)" env PGPASSWORD=da_password \

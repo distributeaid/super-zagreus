@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-07-20-dev-container-design.md`
 
+> **Superseded by implementation (2026-07-21):** The `init-firewall.sh` contents embedded in Task 2 below are the pre-review version and contain an ACCEPT-window bootstrap that was replaced during implementation with a fail-closed bootstrap (temporary `ZAGREUS-BOOTSTRAP` chains, policies never set to ACCEPT), plus IPv6 default-DROP and removal of outbound SSH. The script is installed as `/usr/local/bin/zagreus-init-firewall.sh`. Do not copy the embedded script text; the authoritative version is `.devcontainer/init-firewall.sh` on this branch.
+
 ## Global Constraints
 
 - Database service name `db`, image `postgres:16`, env exactly: `POSTGRES_USER=da_user`, `POSTGRES_PASSWORD=da_password`, `POSTGRES_DB=da_needs_assessment` (matches host `da-postgres` and `appsettings.json`). Data volume: `zagreus-pgdata`. Do NOT publish 5432 to the host (host already runs `da-postgres` there).

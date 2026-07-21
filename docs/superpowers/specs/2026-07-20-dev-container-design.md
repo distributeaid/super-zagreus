@@ -7,6 +7,8 @@
 
 ---
 
+> **Implementation amendments (2026-07-21):** During implementation the firewall script was installed as `/usr/local/bin/zagreus-init-firewall.sh` (the `claude-code` devcontainer feature owns the original `init-firewall.sh` path); `statsig.anthropic.com` was dropped from the allowlist (NXDOMAIN) and `pkgs.dev.azure.com` was not needed (`.NET` restore succeeds via `api.nuget.org`); the firewall gained a fail-closed bootstrap and IPv6 default-DROP; and unrestricted outbound SSH (TCP/22) was removed. The authoritative firewall behavior is `.devcontainer/init-firewall.sh`; where this document's allowlist table or path references differ, the implementation governs.
+
 ## 1. Overview
 
 The repo gets a `.devcontainer/` setup that provides the full Zagreus toolchain (.NET 8, Node 22 + Yarn 4, PostgreSQL 16, Claude Code) inside a container. The container is the trust boundary: Claude runs in auto mode inside it, with outbound network restricted to an allowlist, no access to host credentials, and the workspace as the only shared filesystem.
