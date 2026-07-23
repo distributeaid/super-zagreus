@@ -1,0 +1,33 @@
+{
+  "name": "Zagreus Sandbox",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "dev",
+  "workspaceFolder": "/workspaces/zagreus",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" },
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
+  },
+  "forwardPorts": [3000, 54764],
+  // postCreate runs once per container creation (first up / rebuild); postStart
+  // runs on every start, including that first one — so the firewall runs twice
+  // on creation, which is harmless (the script is idempotent). The firewall must
+  // re-run on each start because iptables rules live in the container's network
+  // namespace and are lost on stop/start; the smoke test stays create-only
+  // because it takes minutes and the environment only changes on rebuild.
+  // waitFor blocks "container ready" on the firewall, so no terminal (and no
+  // agent) can run before egress is locked down or if the script fails.
+  "postCreateCommand": "corepack enable && sudo /usr/local/bin/zagreus-init-firewall.sh && bash .devcontainer/smoke-test.sh",
+  "postStartCommand": "sudo /usr/local/bin/zagreus-init-firewall.sh",
+  "waitFor": "postStartCommand",
+  "remoteUser": "vscode",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "ms-dotnettools.csdevkit",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}

@@ -23,6 +23,8 @@ status.
 2. **Credentials & secrets** (JWT key, Google/Microsoft OAuth, `apps/web/.env.local`,
    provisioning your sign-in email): see
    [docs/local-development.md](docs/local-development.md).
+3. **Sandboxed Claude auto mode** (optional): open in the dev container —
+   see [docs/dev-container.md](docs/dev-container.md).
 
 Once set up, run the three processes (each in its own terminal):
 
