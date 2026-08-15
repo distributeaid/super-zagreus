@@ -18,6 +18,11 @@
 /coverage
 **/coverage
 
+# coverage gate outputs (generated at repo root by scripts/coverage-diff.mjs)
+/coverage-diff.json
+/coverage-patch.json
+/coverage-report.md
+
 # next.js
 /.next/
 apps/web/.next/
