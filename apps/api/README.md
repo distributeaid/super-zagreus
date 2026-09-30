@@ -307,7 +307,7 @@ GET /api/projects/{projectId}/assessments/current
 | `DA.NA.Core` | Entities, enums, DbContext, migrations, seed data |
 | `DA.NA.Api` | ASP.NET Core entry point — controllers, routing, Swagger |
 | `DA.NA.Assessments` | Placeholder — assessment business logic will be extracted here |
-| `DA.NA.Staleness` | Placeholder — background staleness jobs and notifications |
+| `DA.NA.Staleness` | Freshness reminder background job and email composition (logging sender in dev) |
 | `DA.NA.Analytics` | Placeholder — reporting, exports, historical trends |
 | `DA.NA.Tests` | xUnit tests |
 
