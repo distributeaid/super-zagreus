@@ -14,7 +14,10 @@ the API.
 
 The current slice covers end-to-end auth + a dashboard: a provisioned user signs in with
 Google/Microsoft, and lands on a dashboard showing their project and its 90-day freshness
-status.
+status. The API also runs a daily job that emails org users when a needs list is 76 days
+old (pre-stale warning) and 90 days old (stale notice). In local development those emails
+are written to the API log, not sent. See
+[docs/local-development.md](docs/local-development.md#freshness-reminder-emails).
 
 ## Quick start
 

@@ -165,6 +165,26 @@ matching your provisioned email → land on `/dashboard`.
 Restart the web dev server after editing `.env.local` or auth/middleware code — env files
 and middleware are read at startup.
 
+### Freshness reminder emails
+
+The API runs a daily background job (`DA.NA.Staleness`) that sends needs-list freshness
+reminders at 76 and 90 days after last confirm. In local dev, emails are **not sent over
+SMTP** — `LoggingEmailSender` writes them to the API console instead. Look for log lines
+like `Freshness reminder email (not sent — logging only)`.
+
+Config in `apps/api/DA.NA.Api/appsettings.json` (not secrets — safe to commit defaults):
+
+| Key | Default | Purpose |
+|---|---|---|
+| `WebApp:BaseUrl` | `http://localhost:3000` | CTA links in reminder emails (`{BaseUrl}/needs`). Must match the web dev server URL. |
+| `FreshnessReminders:Enabled` | `true` | Set `false` to disable the background job locally. |
+| `FreshnessReminders:IntervalHours` | `24` | How often the job runs (also runs once on API startup). |
+
+To test reminders, you need an **active** project with a **submitted** assessment whose
+`SubmittedAt` is at least 76 days ago. The seed data uses recent dates, so you won't see
+emails until you backdate a row in Postgres or add a test assessment with an old
+`SubmittedAt`.
+
 ---
 
 ## Troubleshooting

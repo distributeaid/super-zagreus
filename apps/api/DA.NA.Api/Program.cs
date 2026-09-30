@@ -1,5 +1,6 @@
 using DA.NA.Core.Data;
 using DA.NA.Core.Entities;
+using DA.NA.Staleness;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -72,6 +73,13 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+
+builder.Services.AddSingleton<IEmailSender, LoggingEmailSender>();
+builder.Services.AddSingleton<FreshnessReminderEmailComposer>();
+builder.Services.AddScoped<FreshnessReminderService>();
+
+if (!builder.Environment.IsEnvironment("Testing"))
+    builder.Services.AddHostedService<FreshnessReminderBackgroundService>();
 
 // Open CORS for prototype — lock this down before production
 builder.Services.AddCors(options =>

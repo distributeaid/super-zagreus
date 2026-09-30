@@ -25,6 +25,7 @@ apps/web/out/
 /out/
 
 # dotnet
+.vs/
 apps/api/**/bin/
 apps/api/**/obj/
 

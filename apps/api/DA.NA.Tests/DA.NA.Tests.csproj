@@ -18,6 +18,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DA.NA.Core\DA.NA.Core.csproj" />
+    <ProjectReference Include="..\DA.NA.Staleness\DA.NA.Staleness.csproj" />
     <ProjectReference Include="..\DA.NA.Api\DA.NA.Api.csproj" />
   </ItemGroup>
 </Project>

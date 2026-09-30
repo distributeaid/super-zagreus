@@ -17,9 +17,15 @@ Controllers talk directly to `AppDbContext`. Business logic lives in controller 
 
 ### Logic is in DA.NA.Api, not in the feature projects
 
-`DA.NA.Assessments`, `DA.NA.Staleness`, and `DA.NA.Analytics` are currently empty placeholders. All domain logic sits in `DA.NA.Api`.
+`DA.NA.Assessments` and `DA.NA.Analytics` are currently empty placeholders. Needs-list freshness reminders live in `DA.NA.Staleness` (rules, email composition, and a daily background job). The rest of the domain logic still sits in `DA.NA.Api`.
 
 **What to do:** As each area grows, migrate its logic into the appropriate project and have `DA.NA.Api` depend on it. The boundary is: `DA.NA.Api` handles HTTP concerns (routing, auth, request parsing, response shaping). Feature projects handle domain logic.
+
+### Freshness emails are logged, not delivered
+
+`LoggingEmailSender` writes reminder emails to the API log. There is no SMTP or provider integration yet.
+
+**What to do:** Add a production `IEmailSender` (SMTP or a provider such as SendGrid) and keep the logging sender for local development.
 
 ---
 
@@ -112,8 +118,8 @@ The test suite uses SQLite in-memory to avoid needing a running database. SQLite
 
 **What to do:** For the level of queries currently in this codebase the risk is low. As queries grow more complex, consider adding a separate integration test suite that runs against a real PostgreSQL instance (Testcontainers is the standard approach — spins up a Docker container per test run).
 
-### No unit tests yet
+### Most tests still go through HTTP
 
-All current tests are integration tests that go through HTTP.
+Auth, organisations, and assessments are covered by integration tests that boot the API. Freshness reminder rules and email text also have direct unit tests.
 
-**What to do:** Add unit tests for pure business logic once it moves into a service layer. Unit tests are faster and more targeted; integration tests confirm the wiring is correct. Both have a role.
+**What to do:** Keep adding unit tests for pure business logic as it moves into feature projects. Integration tests confirm the wiring is correct. Both have a role.

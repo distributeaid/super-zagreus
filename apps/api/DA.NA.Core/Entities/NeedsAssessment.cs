@@ -17,5 +17,9 @@ public class NeedsAssessment
     public DateTime CreatedAt { get; set; }
     public DateTime? SubmittedAt { get; set; }     // staleness clock starts here
 
+    // Freshness email reminders (issue #22) — one send per type per assessment cycle
+    public DateTime? PreStaleEmailSentAt { get; set; }
+    public DateTime? StaleEmailSentAt { get; set; }
+
     public List<AssessmentItem> Items { get; set; } = [];
 }
