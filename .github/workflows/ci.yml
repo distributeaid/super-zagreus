@@ -21,6 +21,8 @@ jobs:
       - run: yarn install --immutable
       - run: yarn workspace @zagreus/web typecheck
       - run: yarn workspace @zagreus/web test
+      - run: yarn workspace @zagreus/web build
+      - run: yarn workspace @zagreus/web test:integration
 
   api:
     runs-on: ubuntu-latest
