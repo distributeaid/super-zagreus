@@ -162,6 +162,18 @@ yarn workspace @zagreus/web dev     # http://localhost:3000
 Open http://localhost:3000 → you're redirected to `/login` → sign in with the provider
 matching your provisioned email → land on `/dashboard`.
 
+### Integration tests (web)
+
+`yarn workspace @zagreus/web test:integration` boots the built app with `next start` and
+checks over HTTP that the `/dashboard` route guard (`src/proxy.ts`) actually runs. It
+starts its own stub API and uses forged session cookies, so it needs no OAuth apps,
+database, or running API. Build first, and rebuild after changing app code:
+
+```bash
+yarn workspace @zagreus/web build
+yarn workspace @zagreus/web test:integration
+```
+
 Restart the web dev server after editing `.env.local` or auth/middleware code — env files
 and middleware are read at startup.
 
