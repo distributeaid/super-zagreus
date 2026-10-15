@@ -5,6 +5,13 @@ partner-facing web app. Partner (hub/frontline) users sign in with Google or Mic
 manage their organisation's needs assessments; authorization (org + role) is enforced by
 the API.
 
+**This is the working repo for Zagreus.** All frontend and backend work happens here. The
+earlier `distributeaid/zagreus-fe` and `distributeaid/zagreus-be` prototypes are archived
+and no longer accept changes — their code was consolidated into `apps/web` and `apps/api`.
+See §2.1 of the
+[technical design](docs/superpowers/specs/2026-07-16-zagreus-mvp-technical-design.md) for
+the decision.
+
 ## What's here
 
 | Workspace | Stack | Purpose |
@@ -17,6 +24,11 @@ Google/Microsoft, and lands on a dashboard showing their project and its 90-day 
 status.
 
 ## Quick start
+
+```bash
+git clone https://github.com/distributeaid/super-zagreus.git
+cd super-zagreus
+```
 
 1. **First-time toolchain + database + API** (.NET, Docker, Postgres):
    see [apps/api/README.md](apps/api/README.md).

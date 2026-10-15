@@ -128,6 +128,8 @@ git commit -m "chore: initialize yarn 4 monorepo workspace"
 
 - [ ] **Step 1: Copy the solution in (preserving history is optional for a prototype)**
 
+_Historical: this one-time import has been done. `distributeaid/zagreus-be` is archived — do not re-run these commands._
+
 ```bash
 cd /tmp
 git clone --branch saga --depth 1 https://github.com/distributeaid/zagreus-be.git

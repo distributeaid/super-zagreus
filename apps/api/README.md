@@ -1,6 +1,10 @@
 # DistributeAid — Needs Assessment API
 
-Prototype backend. .NET 8 / ASP.NET Core / PostgreSQL.
+The Zagreus backend. .NET 8 / ASP.NET Core / PostgreSQL.
+
+This is `apps/api` of the [super-zagreus monorepo](../../README.md), the working repo for
+Zagreus. The solution was carried over from the archived `distributeaid/zagreus-be`
+prototype, which no longer accepts changes.
 
 ---
 
@@ -71,8 +75,8 @@ Close and reopen your terminal after this step.
 
 If you have Git installed:
 ```
-git clone <repository-url>
-cd da_needs_assessment_proto
+git clone https://github.com/distributeaid/super-zagreus.git
+cd super-zagreus
 ```
 
 Or download and unzip the repository from GitHub.
@@ -96,14 +100,14 @@ docker start da-postgres
 This only needs to be done once (or whenever the data model changes).
 
 ```
-cd da_needs_assessment_proto\DA.NA.Api
+cd apps\api\DA.NA.Api
 dotnet ef migrations add InitialCreate --project ..\DA.NA.Core
 ```
 
 ### Step 7 — Run the API
 
 ```
-cd da_needs_assessment_proto\DA.NA.Api
+cd apps\api\DA.NA.Api
 dotnet run
 ```
 
@@ -162,8 +166,8 @@ Then run `source ~/.zshrc` (or open a new terminal window).
 ### Step 4 — Clone the repository
 
 ```
-git clone <repository-url>
-cd da_needs_assessment_proto
+git clone https://github.com/distributeaid/super-zagreus.git
+cd super-zagreus
 ```
 
 Or download and unzip the repository from GitHub.
@@ -192,14 +196,14 @@ docker start da-postgres
 This only needs to be done once (or whenever the data model changes).
 
 ```
-cd da_needs_assessment_proto/DA.NA.Api
+cd apps/api/DA.NA.Api
 dotnet ef migrations add InitialCreate --project ../DA.NA.Core
 ```
 
 ### Step 7 — Run the API
 
 ```
-cd da_needs_assessment_proto/DA.NA.Api
+cd apps/api/DA.NA.Api
 dotnet run
 ```
 
