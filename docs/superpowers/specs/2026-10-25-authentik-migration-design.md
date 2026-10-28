@@ -1,7 +1,7 @@
 # Authentik Migration
 
 **Status:** Proposed
-**Date:** 2026-10-26
+**Date:** 2026-10-25
 **Depends on:** [ADR-001](../docs/adr/001-self-hosted-idp-with-Authentik.md)
 
 ## Goals
