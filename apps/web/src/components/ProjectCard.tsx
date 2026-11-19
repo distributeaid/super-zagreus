@@ -23,7 +23,9 @@ export function ProjectCard({
           : "Not yet confirmed"}
       </p>
       <div className="mt-da-md">
-        <Button>Review &amp; confirm needs</Button>
+        <a href="/needs">
+          <Button>Review &amp; confirm needs</Button>
+        </a>
       </div>
     </section>
   );
