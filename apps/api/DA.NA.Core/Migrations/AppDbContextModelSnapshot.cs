@@ -114,7 +114,9 @@ namespace DA.NA.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProjectId");
+                    b.HasIndex("ProjectId")
+                        .IsUnique()
+                        .HasFilter("\"Status\" = 'Draft'");
 
                     b.HasIndex("SupersedesId");
 
