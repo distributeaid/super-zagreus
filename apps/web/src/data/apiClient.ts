@@ -33,3 +33,36 @@ export async function apiGet<T>(path: string): Promise<T> {
   if (!res.ok) throw new Error(`API ${path} failed: ${res.status}`);
   return (await res.json()) as T;
 }
+
+async function apiSend<T>(method: "POST" | "PATCH" | "DELETE", path: string, body?: unknown): Promise<T> {
+  const session = await auth();
+  const token = session?.apiToken;
+  if (!token) redirect("/login");
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers: body === undefined
+      ? { authorization: `Bearer ${token}` }
+      : { authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    cache: "no-store",
+  });
+  if (res.status === 401) redirect("/login");
+  if (!res.ok) throw new Error(`API ${method} ${path} failed: ${res.status}`);
+  if (res.status === 204) return undefined as T;
+  return (await res.json()) as T;
+}
+
+/** Server-only POST to the backend API (Bearer attached; `401 → /login`). */
+export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
+  return apiSend<T>("POST", path, body);
+}
+
+/** Server-only PATCH to the backend API (Bearer attached; `401 → /login`). */
+export async function apiPatch<T>(path: string, body?: unknown): Promise<T> {
+  return apiSend<T>("PATCH", path, body);
+}
+
+/** Server-only DELETE to the backend API (Bearer attached; `401 → /login`). */
+export async function apiDelete(path: string): Promise<void> {
+  await apiSend<void>("DELETE", path);
+}
